@@ -1,0 +1,299 @@
+import { createFileRoute, Link } from '@tanstack/react-router'
+import {
+  Download,
+  Monitor,
+  HardDrive,
+  Cpu,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  FileDown,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { siteConfig } from '@/lib/config'
+
+export const Route = createFileRoute('/download')({
+  component: DownloadPage,
+})
+
+function DownloadPage() {
+  return (
+    <div className="flex flex-col">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden py-16 md:py-24">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+
+        <div className="container relative mx-auto px-4 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Download & <span className="text-primary">Get Started</span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Follow these steps to connect to {siteConfig.name} and begin your adventure.
+          </p>
+        </div>
+      </section>
+
+      {/* System Requirements */}
+      <section className="py-12 border-b border-border">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-center">System Requirements</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card className="bg-card/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Monitor className="h-5 w-5 text-muted-foreground" />
+                    Minimum
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <RequirementRow icon={<Cpu className="h-4 w-4" />} label="CPU" value="Intel Core 2 Duo / AMD Athlon 64 X2" />
+                  <RequirementRow icon={<HardDrive className="h-4 w-4" />} label="RAM" value="2 GB" />
+                  <RequirementRow icon={<Monitor className="h-4 w-4" />} label="GPU" value="NVIDIA GeForce 8600 / ATI Radeon HD 2600" />
+                  <RequirementRow icon={<HardDrive className="h-4 w-4" />} label="Storage" value="25 GB available space" />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/50">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Monitor className="h-5 w-5 text-primary" />
+                    Recommended
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <RequirementRow icon={<Cpu className="h-4 w-4" />} label="CPU" value="Intel Core i5 / AMD FX-6300" />
+                  <RequirementRow icon={<HardDrive className="h-4 w-4" />} label="RAM" value="4 GB" />
+                  <RequirementRow icon={<Monitor className="h-4 w-4" />} label="GPU" value="NVIDIA GeForce GTX 560 / ATI Radeon HD 7850" />
+                  <RequirementRow icon={<HardDrive className="h-4 w-4" />} label="Storage" value="25 GB SSD" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Setup Instructions */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-8 text-center">Setup Instructions</h2>
+
+            <div className="space-y-6">
+              {/* Step 1 */}
+              <SetupStep
+                number={1}
+                title="Get the WoW Client"
+                description="You'll need a WoW 3.3.5a (12340) client. We cannot distribute this ourselves."
+              >
+                <Card className="bg-muted/30 border-border">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          If you don't already have a WoW 3.3.5a client, you can obtain one from various sources online.
+                          Make sure you get version <strong>3.3.5a (build 12340)</strong>.
+                        </p>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={siteConfig.links.clientDownload} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            Find Client
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </SetupStep>
+
+              {/* Step 2 */}
+              <SetupStep
+                number={2}
+                title="Create an Account"
+                description="Register on our website and create your game account."
+              >
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button asChild>
+                    <Link to="/register">Create Account</Link>
+                  </Button>
+                  <Button variant="outline" asChild>
+                    <Link to="/login">Already have an account? Login</Link>
+                  </Button>
+                </div>
+              </SetupStep>
+
+              {/* Step 3 */}
+              <SetupStep
+                number={3}
+                title="Download the Patcher"
+                description="Our custom patcher will download and apply necessary updates to your client."
+              >
+                <Card className="bg-muted/30 border-border">
+                  <CardContent className="py-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <FileDown className="h-8 w-8 text-primary" />
+                        <div>
+                          <p className="font-medium">{siteConfig.name} Patcher</p>
+                          <p className="text-sm text-muted-foreground">Windows only</p>
+                        </div>
+                      </div>
+                      <Button disabled>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Coming Soon
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                <p className="text-sm text-muted-foreground mt-3">
+                  The patcher will automatically update your client with our custom patches and realmlist.
+                </p>
+              </SetupStep>
+
+              {/* Step 4 */}
+              <SetupStep
+                number={4}
+                title="Run the Patcher"
+                description="Place the patcher in your WoW folder and run it."
+              >
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Move the patcher executable to your WoW 3.3.5a installation folder</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Run the patcher as Administrator (recommended)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Wait for the patcher to download and apply all updates</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>The patcher will automatically configure your realmlist</span>
+                  </div>
+                </div>
+              </SetupStep>
+
+              {/* Step 5 */}
+              <SetupStep
+                number={5}
+                title="Launch the Game"
+                description="Start WoW and log in with your account credentials."
+              >
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Launch <code className="px-1 py-0.5 bg-muted rounded text-foreground">Wow.exe</code> from your WoW folder</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Enter your game account username and password</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <span>Select the realm and create your character</span>
+                  </div>
+                </div>
+              </SetupStep>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Troubleshooting */}
+      <section className="py-16 bg-card/30 border-t border-border">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-2xl font-bold mb-6 text-center">Troubleshooting</h2>
+
+            <div className="space-y-4">
+              <TroubleshootItem
+                question="The patcher won't start"
+                answer="Make sure you're running it as Administrator. Some antivirus software may flag custom patchers - you may need to add an exception."
+              />
+              <TroubleshootItem
+                question="I'm getting 'Unable to connect' errors"
+                answer="Verify that your realmlist.wtf file is correctly configured. The patcher should handle this automatically, but you can check it manually in your Data folder."
+              />
+              <TroubleshootItem
+                question="The game crashes on startup"
+                answer="Ensure you have a clean 3.3.5a (12340) client. Clients with other patches applied may cause conflicts."
+              />
+              <TroubleshootItem
+                question="I forgot my password"
+                answer="Use the password reset function on the website. Game account passwords can be reset from your account dashboard after logging in."
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function RequirementRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-muted-foreground">{icon}</span>
+      <span className="text-sm text-muted-foreground w-16">{label}</span>
+      <span className="text-sm">{value}</span>
+    </div>
+  )
+}
+
+function SetupStep({
+  number,
+  title,
+  description,
+  children,
+}: {
+  number: number
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="relative pl-12">
+      <div className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+        {number}
+      </div>
+      <div>
+        <h3 className="font-semibold text-lg mb-1">{title}</h3>
+        <p className="text-muted-foreground text-sm mb-4">{description}</p>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function TroubleshootItem({
+  question,
+  answer,
+}: {
+  question: string
+  answer: string
+}) {
+  return (
+    <Card className="bg-muted/30">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">{question}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{answer}</p>
+      </CardContent>
+    </Card>
+  )
+}

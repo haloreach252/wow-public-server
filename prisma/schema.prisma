@@ -21,3 +21,32 @@ model GameAccount {
 
   @@map("game_accounts")
 }
+
+// Content types for the site
+enum ContentType {
+  release // Major update showcases
+  blog    // Development updates, announcements
+  wiki    // Feature documentation, guides
+}
+
+// Content managed by admin panel, displayed on public site
+model Content {
+  id            String      @id @default(cuid())
+  type          ContentType
+  slug          String      @unique
+  title         String
+  summary       String?     @db.Text
+  body          Json        // Tiptap JSON format
+  featuredImage String?     @map("featured_image")
+  published     Boolean     @default(false)
+  publishedAt   DateTime?   @map("published_at")
+  authorId      String?     @map("author_id") // Admin panel user ID (for reference)
+  authorName    String?     @map("author_name") // Denormalized for display
+  metadata      Json        @default("{}")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@index([type, published, publishedAt])
+  @@index([published, publishedAt])
+  @@map("content")
+}

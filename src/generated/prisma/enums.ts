@@ -9,7 +9,10 @@
 * 🟢 You can import this file directly.
 */
 
+export const ContentType = {
+  release: 'release',
+  blog: 'blog',
+  wiki: 'wiki'
+} as const
 
-
-// This file is empty because there are no enums in the schema.
-export {}
+export type ContentType = (typeof ContentType)[keyof typeof ContentType]

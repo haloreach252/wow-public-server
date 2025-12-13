@@ -1,15 +1,22 @@
 # Public Site Integration for Admin Panel
 
-This document describes the API endpoints that the admin panel needs to implement to support the public website's game account management features.
+This document describes the API endpoints and integrations between the public website and admin panel.
 
 ## Overview
 
-The public website needs to:
-1. Create game accounts (linked to their website account)
-2. Change their game account password
-3. Display server status (online/offline, player count)
+The integration has two parts:
 
-These operations require executing SOAP commands against AzerothCore. The public site proxies these requests through the admin panel, which has direct SOAP access.
+### Admin Panel → Public Site (Content Management)
+The public site exposes API endpoints that the admin panel calls to manage content:
+- Create, update, delete blog posts, releases, and wiki pages
+- Content is stored in the public site's PostgreSQL database
+- Admin panel provides the content management UI
+
+### Public Site → Admin Panel (Game Operations)
+The public site calls admin panel endpoints for operations requiring SOAP:
+- Create game accounts
+- Change game passwords
+- Get server status
 
 ## Authentication
 
@@ -369,6 +376,335 @@ async function getCachedServerStatus() {
 **Manual Testing with curl:**
 ```bash
 curl -X GET http://localhost:3000/api/public/status \
+  -H "X-Service-Key: your-service-key"
+```
+
+---
+
+## Content Management API (Admin Panel → Public Site)
+
+The public site exposes these endpoints for the admin panel to manage content. The admin panel should build a UI for content management that calls these endpoints.
+
+**Base URL:** `http://localhost:3001` (public site)
+
+**Authentication:** All requests require `X-Service-Key` header with `PUBLIC_SITE_SERVICE_KEY`.
+
+---
+
+### 4. List Content
+
+**Endpoint:** `GET /api/public/content`
+
+**Headers:**
+- `X-Service-Key: <service_key>`
+
+**Query Parameters:**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `type` | string | Filter by type: `release`, `blog`, or `wiki` |
+| `published` | boolean | Filter by published status: `true` or `false` |
+| `limit` | number | Max items to return (default: 50, max: 100) |
+| `offset` | number | Pagination offset (default: 0) |
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "content": [
+    {
+      "id": "clxyz123...",
+      "type": "blog",
+      "slug": "welcome-to-the-server",
+      "title": "Welcome to the Server",
+      "summary": "Our server is now live!",
+      "featuredImage": "https://...",
+      "authorName": "Admin",
+      "publishedAt": "2024-01-15T10:00:00.000Z",
+      "createdAt": "2024-01-15T09:00:00.000Z"
+    }
+  ],
+  "total": 42,
+  "hasMore": true
+}
+```
+
+---
+
+### 5. Get Single Content
+
+**Endpoint:** `GET /api/public/content/:id`
+
+**Headers:**
+- `X-Service-Key: <service_key>`
+
+**URL Parameters:**
+- `id`: Content ID or slug
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "content": {
+    "id": "clxyz123...",
+    "type": "blog",
+    "slug": "welcome-to-the-server",
+    "title": "Welcome to the Server",
+    "summary": "Our server is now live!",
+    "body": { "type": "doc", "content": [...] },
+    "featuredImage": "https://...",
+    "authorId": "admin-user-id",
+    "authorName": "Admin",
+    "metadata": {},
+    "publishedAt": "2024-01-15T10:00:00.000Z",
+    "createdAt": "2024-01-15T09:00:00.000Z",
+    "updatedAt": "2024-01-15T09:00:00.000Z"
+  }
+}
+```
+
+**Error Response (404):**
+```json
+{
+  "success": false,
+  "error": "Content not found"
+}
+```
+
+---
+
+### 6. Create Content
+
+**Endpoint:** `POST /api/public/content`
+
+**Headers:**
+- `Content-Type: application/json`
+- `X-Service-Key: <service_key>`
+
+**Request Body:**
+```json
+{
+  "type": "blog",
+  "slug": "my-new-post",
+  "title": "My New Post",
+  "summary": "A brief description",
+  "body": {
+    "type": "doc",
+    "content": [
+      {
+        "type": "paragraph",
+        "content": [{ "type": "text", "text": "Hello world!" }]
+      }
+    ]
+  },
+  "featuredImage": "https://example.com/image.jpg",
+  "published": false,
+  "authorId": "admin-user-id",
+  "authorName": "Admin Name",
+  "metadata": {}
+}
+```
+
+**Required Fields:**
+- `type`: `release`, `blog`, or `wiki`
+- `slug`: URL-friendly identifier (lowercase, alphanumeric, hyphens only)
+- `title`: Content title
+- `body`: Tiptap JSON document
+
+**Optional Fields:**
+- `summary`: Short description
+- `featuredImage`: URL to featured image
+- `published`: Whether to publish immediately (default: false)
+- `authorId`: Admin user ID for reference
+- `authorName`: Display name for author
+- `metadata`: Additional JSON data
+
+**Success Response (201):**
+```json
+{
+  "success": true,
+  "content": { ... }
+}
+```
+
+**Error Responses:**
+- `400`: Missing required fields or invalid slug format
+- `400`: Slug already exists
+- `401`: Invalid service key
+
+---
+
+### 7. Update Content
+
+**Endpoint:** `PUT /api/public/content/:id`
+
+**Headers:**
+- `Content-Type: application/json`
+- `X-Service-Key: <service_key>`
+
+**Request Body:** (all fields optional)
+```json
+{
+  "type": "blog",
+  "slug": "updated-slug",
+  "title": "Updated Title",
+  "summary": "Updated summary",
+  "body": { ... },
+  "featuredImage": "https://...",
+  "published": true,
+  "authorId": "...",
+  "authorName": "...",
+  "metadata": {}
+}
+```
+
+**Publishing Behavior:**
+- When `published` changes from `false` to `true`, `publishedAt` is set to current time
+- Subsequent updates don't change `publishedAt`
+- Setting `published` to `false` keeps the original `publishedAt` for reference
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "content": { ... }
+}
+```
+
+**Error Responses:**
+- `400`: Invalid slug format or slug already exists
+- `401`: Invalid service key
+- `404`: Content not found
+
+---
+
+### 8. Delete Content
+
+**Endpoint:** `DELETE /api/public/content/:id`
+
+**Headers:**
+- `X-Service-Key: <service_key>`
+
+**Success Response (200):**
+```json
+{
+  "success": true
+}
+```
+
+**Error Responses:**
+- `401`: Invalid service key
+- `404`: Content not found
+
+---
+
+## Tiptap JSON Format
+
+The `body` field uses Tiptap's JSON format. Example document:
+
+```json
+{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": { "level": 1 },
+      "content": [{ "type": "text", "text": "Welcome" }]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        { "type": "text", "text": "This is " },
+        { "type": "text", "marks": [{ "type": "bold" }], "text": "bold" },
+        { "type": "text", "text": " text." }
+      ]
+    },
+    {
+      "type": "image",
+      "attrs": {
+        "src": "https://example.com/image.jpg",
+        "alt": "Description"
+      }
+    }
+  ]
+}
+```
+
+**Supported Node Types:**
+- `doc` - Root document
+- `paragraph` - Paragraph
+- `heading` - Heading (levels 1-4)
+- `bulletList`, `orderedList`, `listItem` - Lists
+- `blockquote` - Quote
+- `codeBlock` - Code block
+- `horizontalRule` - Horizontal line
+- `image` - Image (with src, alt, title)
+
+**Supported Marks:**
+- `bold`, `italic`, `strike` - Text formatting
+- `code` - Inline code
+- `link` - Hyperlink (with href, target)
+
+---
+
+## Admin Panel UI Requirements
+
+The admin panel should provide:
+
+1. **Content List View**
+   - Table/grid of all content
+   - Filter by type and published status
+   - Search by title
+   - Quick actions: edit, publish/unpublish, delete
+
+2. **Content Editor**
+   - Tiptap rich text editor
+   - Title, slug, summary fields
+   - Featured image upload (use existing R2 integration)
+   - Type selector (release, blog, wiki)
+   - Publish/draft toggle
+   - Preview capability
+
+3. **Validation**
+   - Slug format validation (lowercase, alphanumeric, hyphens)
+   - Required field validation
+   - Duplicate slug prevention
+
+---
+
+## Testing Content API
+
+**List all content:**
+```bash
+curl http://localhost:3001/api/public/content \
+  -H "X-Service-Key: your-service-key"
+```
+
+**Create blog post:**
+```bash
+curl -X POST http://localhost:3001/api/public/content \
+  -H "Content-Type: application/json" \
+  -H "X-Service-Key: your-service-key" \
+  -d '{
+    "type": "blog",
+    "slug": "test-post",
+    "title": "Test Post",
+    "body": {"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Hello!"}]}]},
+    "published": true,
+    "authorName": "Admin"
+  }'
+```
+
+**Update content:**
+```bash
+curl -X PUT http://localhost:3001/api/public/content/<id> \
+  -H "Content-Type: application/json" \
+  -H "X-Service-Key: your-service-key" \
+  -d '{"title": "Updated Title"}'
+```
+
+**Delete content:**
+```bash
+curl -X DELETE http://localhost:3001/api/public/content/<id> \
   -H "X-Service-Key: your-service-key"
 ```
 

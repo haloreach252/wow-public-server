@@ -14,6 +14,7 @@ export const siteConfig = {
   nav: {
     main: [
       { label: 'Home', href: '/' },
+      { label: 'News', href: '/content' },
       { label: 'About', href: '/about' },
       { label: 'Download', href: '/download' },
     ],

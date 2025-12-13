@@ -15,11 +15,16 @@ import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContentIndexRouteImport } from './routes/content/index'
 import { Route as AccountIndexRouteImport } from './routes/account/index'
+import { Route as TestIdRouteImport } from './routes/test/$id'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountGameRouteImport } from './routes/account/game'
+import { Route as ContentTypeSlugRouteImport } from './routes/content/$type.$slug'
+import { Route as ApiPublicContentIndexRouteImport } from './routes/api/public/content/index'
+import { Route as ApiPublicContentIdRouteImport } from './routes/api/public/content/$id'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -51,9 +56,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContentIndexRoute = ContentIndexRouteImport.update({
+  id: '/content/',
+  path: '/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountIndexRoute = AccountIndexRouteImport.update({
   id: '/account/',
   path: '/account/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TestIdRoute = TestIdRouteImport.update({
+  id: '/test/$id',
+  path: '/test/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
@@ -76,6 +91,21 @@ const AccountGameRoute = AccountGameRouteImport.update({
   path: '/account/game',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContentTypeSlugRoute = ContentTypeSlugRouteImport.update({
+  id: '/content/$type/$slug',
+  path: '/content/$type/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicContentIndexRoute = ApiPublicContentIndexRouteImport.update({
+  id: '/api/public/content/',
+  path: '/api/public/content/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicContentIdRoute = ApiPublicContentIdRouteImport.update({
+  id: '/api/public/content/$id',
+  path: '/api/public/content/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,7 +118,12 @@ export interface FileRoutesByFullPath {
   '/account/settings': typeof AccountSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/test/$id': typeof TestIdRoute
   '/account': typeof AccountIndexRoute
+  '/content': typeof ContentIndexRoute
+  '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/public/content/$id': typeof ApiPublicContentIdRoute
+  '/api/public/content': typeof ApiPublicContentIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -101,7 +136,12 @@ export interface FileRoutesByTo {
   '/account/settings': typeof AccountSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/test/$id': typeof TestIdRoute
   '/account': typeof AccountIndexRoute
+  '/content': typeof ContentIndexRoute
+  '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/public/content/$id': typeof ApiPublicContentIdRoute
+  '/api/public/content': typeof ApiPublicContentIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,7 +155,12 @@ export interface FileRoutesById {
   '/account/settings': typeof AccountSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/test/$id': typeof TestIdRoute
   '/account/': typeof AccountIndexRoute
+  '/content/': typeof ContentIndexRoute
+  '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/public/content/$id': typeof ApiPublicContentIdRoute
+  '/api/public/content/': typeof ApiPublicContentIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -130,7 +175,12 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/test/$id'
     | '/account'
+    | '/content'
+    | '/content/$type/$slug'
+    | '/api/public/content/$id'
+    | '/api/public/content'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,7 +193,12 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/test/$id'
     | '/account'
+    | '/content'
+    | '/content/$type/$slug'
+    | '/api/public/content/$id'
+    | '/api/public/content'
   id:
     | '__root__'
     | '/'
@@ -156,7 +211,12 @@ export interface FileRouteTypes {
     | '/account/settings'
     | '/auth/callback'
     | '/auth/reset-password'
+    | '/test/$id'
     | '/account/'
+    | '/content/'
+    | '/content/$type/$slug'
+    | '/api/public/content/$id'
+    | '/api/public/content/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,7 +230,12 @@ export interface RootRouteChildren {
   AccountSettingsRoute: typeof AccountSettingsRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  TestIdRoute: typeof TestIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
+  ContentIndexRoute: typeof ContentIndexRoute
+  ContentTypeSlugRoute: typeof ContentTypeSlugRoute
+  ApiPublicContentIdRoute: typeof ApiPublicContentIdRoute
+  ApiPublicContentIndexRoute: typeof ApiPublicContentIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -217,11 +282,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/content/': {
+      id: '/content/'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/': {
       id: '/account/'
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/test/$id': {
+      id: '/test/$id'
+      path: '/test/$id'
+      fullPath: '/test/$id'
+      preLoaderRoute: typeof TestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/reset-password': {
@@ -252,6 +331,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccountGameRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/content/$type/$slug': {
+      id: '/content/$type/$slug'
+      path: '/content/$type/$slug'
+      fullPath: '/content/$type/$slug'
+      preLoaderRoute: typeof ContentTypeSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/content/': {
+      id: '/api/public/content/'
+      path: '/api/public/content'
+      fullPath: '/api/public/content'
+      preLoaderRoute: typeof ApiPublicContentIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/content/$id': {
+      id: '/api/public/content/$id'
+      path: '/api/public/content/$id'
+      fullPath: '/api/public/content/$id'
+      preLoaderRoute: typeof ApiPublicContentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -266,7 +366,12 @@ const rootRouteChildren: RootRouteChildren = {
   AccountSettingsRoute: AccountSettingsRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
+  TestIdRoute: TestIdRoute,
   AccountIndexRoute: AccountIndexRoute,
+  ContentIndexRoute: ContentIndexRoute,
+  ContentTypeSlugRoute: ContentTypeSlugRoute,
+  ApiPublicContentIdRoute: ApiPublicContentIdRoute,
+  ApiPublicContentIndexRoute: ApiPublicContentIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

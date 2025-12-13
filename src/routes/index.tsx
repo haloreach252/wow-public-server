@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Sword, Download, Users, Scroll, Shield, Map, Sparkles } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowRight, Download, Map, Scroll, Shield, Sparkles, Sword, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ContentCard } from '@/components/content'
 import { ServerStatusWidget } from '@/components/widgets'
+import { getLatestContent, type ContentListResult } from '@/lib/content'
 import { siteConfig } from '@/lib/config'
 
 export const Route = createFileRoute('/')({
@@ -109,28 +112,7 @@ function HomePage() {
       </section>
 
       {/* Latest News Section */}
-      <section className="py-16 md:py-24 bg-card/30 border-y border-border">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Latest News</h2>
-            <p className="text-muted-foreground">
-              Stay up to date with server announcements and development updates.
-            </p>
-          </div>
-
-          {/* Placeholder for news - will be dynamic later */}
-          <div className="max-w-3xl mx-auto">
-            <Card className="bg-muted/50">
-              <CardContent className="py-12 text-center">
-                <Scroll className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
-                  News and announcements will appear here once the content system is ready.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+      <LatestNewsSection />
 
       {/* CTA Section */}
       <section className="py-16 md:py-24">
@@ -172,5 +154,74 @@ function FeatureCard({
         <p className="text-muted-foreground text-sm">{description}</p>
       </CardContent>
     </Card>
+  )
+}
+
+function LatestNewsSection() {
+  const { data, isLoading } = useQuery<ContentListResult>({
+    queryKey: ['content', 'latest'],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryFn: () => (getLatestContent as any)({ data: { limit: 3, types: ['blog', 'release'] } }),
+    staleTime: 60000, // Consider fresh for 1 minute
+  })
+
+  const content = data?.content ?? []
+  const hasContent = content.length > 0
+
+  return (
+    <section className="py-16 md:py-24 bg-card/30 border-y border-border">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Latest News</h2>
+          <p className="text-muted-foreground">
+            Stay up to date with server announcements and development updates.
+          </p>
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-48 rounded-lg bg-muted/50 animate-pulse" />
+            ))}
+          </div>
+        ) : hasContent ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+              {content.map((item) => (
+                <ContentCard
+                  key={item.id}
+                  type={item.type}
+                  slug={item.slug}
+                  title={item.title}
+                  summary={item.summary}
+                  featuredImage={item.featuredImage}
+                  authorName={item.authorName}
+                  publishedAt={item.publishedAt}
+                />
+              ))}
+            </div>
+            <div className="text-center mt-8">
+              <Button variant="outline" asChild>
+                <Link to="/content" search={{ type: undefined, page: 1 }}>
+                  View All Content
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="max-w-3xl mx-auto">
+            <Card className="bg-muted/50">
+              <CardContent className="py-12 text-center">
+                <Scroll className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  No news yet. Check back soon for updates!
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
+    </section>
   )
 }

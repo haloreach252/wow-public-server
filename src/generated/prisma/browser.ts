@@ -22,3 +22,8 @@ export * from './enums.ts';
  * 
  */
 export type GameAccount = Prisma.GameAccountModel
+/**
+ * Model Content
+ * 
+ */
+export type Content = Prisma.ContentModel

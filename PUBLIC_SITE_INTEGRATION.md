@@ -4,9 +4,10 @@ This document describes the API endpoints that the admin panel needs to implemen
 
 ## Overview
 
-The public website allows users to:
+The public website needs to:
 1. Create game accounts (linked to their website account)
 2. Change their game account password
+3. Display server status (online/offline, player count)
 
 These operations require executing SOAP commands against AzerothCore. The public site proxies these requests through the admin panel, which has direct SOAP access.
 
@@ -209,8 +210,9 @@ curl -X POST http://localhost:3000/api/public/account/password \
   -d '{"username": "testuser", "password": "newpass456"}'
 ```
 
-## Flow Diagram
+## Flow Diagrams
 
+### Account Creation Flow
 ```
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
 │   Browser    │────▶│ Public Site  │────▶│ Admin Panel  │────▶│  AzerothCore │
@@ -226,6 +228,151 @@ curl -X POST http://localhost:3000/api/public/account/password \
                      3. Stores link       4. Account created
                         in PostgreSQL        in MySQL
 ```
+
+### Server Status Flow
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Browser    │────▶│ Public Site  │────▶│ Admin Panel  │────▶│  AzerothCore │
+│  (React Query│     │  (Port 3001) │     │  (Port 3000) │     │    (SOAP)    │
+│  refetch 60s)│     │              │     │  (caches 15s)│     │              │
+└──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+        │                    │                    │                    │
+        │ 1. GET status      │ 2. GET /api/       │ 3. .server info   │
+        │    every 60s       │    public/status   │    SOAP command   │
+        ▼                    ▼                    ▼                    ▼
+   Display widget      Server function      Check cache         Return info
+   with status         fetches status       or query SOAP       (players, uptime)
+```
+
+---
+
+## 3. Server Status
+
+**Endpoint:** `GET /api/public/status`
+
+**Headers:**
+- `X-Service-Key: <service_key>`
+
+**Success Response (200):**
+```json
+{
+  "online": true,
+  "playerCount": 42,
+  "maxPlayers": 500,
+  "uptime": "2d 14h 32m"
+}
+```
+
+**Offline/Error Response (200):**
+```json
+{
+  "online": false
+}
+```
+
+**Error Response (401):**
+```json
+{
+  "success": false,
+  "error": "Invalid service key"
+}
+```
+
+### Response Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `online` | boolean | Yes | Whether the worldserver is running and accepting connections |
+| `playerCount` | number | No | Current number of online players |
+| `maxPlayers` | number | No | Maximum allowed concurrent players |
+| `uptime` | string | No | Human-readable server uptime (e.g., "2d 14h 32m") |
+
+### Implementation Notes
+
+**Determining Online Status:**
+
+Check if the worldserver is running and accepting connections. Options:
+1. Try connecting to the worldserver port (typically 8085)
+2. Execute a simple SOAP command like `.server info` and check for response
+3. Query the `acore_auth.realmlist` table for `flag` status
+
+**Getting Player Count:**
+
+Use SOAP command `.server info` which returns output like:
+```
+AzerothCore rev. xxxxx
+Players online: 42/500
+Uptime: 2 days 14 hours 32 minutes
+```
+
+Parse this output to extract player count and uptime.
+
+**Example Implementation:**
+
+```typescript
+// Pseudocode - adapt to your SOAP implementation
+async function getServerStatus() {
+  try {
+    const result = await executeSoapCommand('.server info')
+
+    // Parse the output
+    const playerMatch = result.match(/Players online: (\d+)\/(\d+)/)
+    const uptimeMatch = result.match(/Uptime: (.+)/)
+
+    return {
+      online: true,
+      playerCount: playerMatch ? parseInt(playerMatch[1]) : undefined,
+      maxPlayers: playerMatch ? parseInt(playerMatch[2]) : undefined,
+      uptime: uptimeMatch ? formatUptime(uptimeMatch[1]) : undefined,
+    }
+  } catch (error) {
+    // SOAP connection failed = server is offline
+    return { online: false }
+  }
+}
+
+function formatUptime(raw: string): string {
+  // Convert "2 days 14 hours 32 minutes" to "2d 14h 32m"
+  return raw
+    .replace(' days', 'd')
+    .replace(' day', 'd')
+    .replace(' hours', 'h')
+    .replace(' hour', 'h')
+    .replace(' minutes', 'm')
+    .replace(' minute', 'm')
+}
+```
+
+### Caching
+
+This endpoint will be called frequently (every 60 seconds by each visitor). Consider caching the result for 10-30 seconds to reduce load on the SOAP server.
+
+```typescript
+let cachedStatus = null
+let cacheTime = 0
+const CACHE_TTL = 15000 // 15 seconds
+
+async function getCachedServerStatus() {
+  const now = Date.now()
+  if (cachedStatus && (now - cacheTime) < CACHE_TTL) {
+    return cachedStatus
+  }
+
+  cachedStatus = await getServerStatus()
+  cacheTime = now
+  return cachedStatus
+}
+```
+
+### Testing
+
+**Manual Testing with curl:**
+```bash
+curl -X GET http://localhost:3000/api/public/status \
+  -H "X-Service-Key: your-service-key"
+```
+
+---
 
 ## Questions?
 

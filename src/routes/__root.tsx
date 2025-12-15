@@ -8,7 +8,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { Header, Footer } from '@/components/layout'
-import { ErrorBoundary } from '@/components/error'
+import { ErrorBoundary, NotFound } from '@/components/error'
+import { ScrollToTop } from '@/components/ui/scroll-to-top'
 import { siteConfig } from '@/lib/config'
 import { AuthProvider } from '@/lib/auth-context'
 
@@ -45,10 +46,23 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         rel: 'stylesheet',
         href: appCss,
       },
+      {
+        rel: 'icon',
+        href: '/favicon.ico',
+      },
+      {
+        rel: 'apple-touch-icon',
+        href: '/logo192.png',
+      },
+      {
+        rel: 'manifest',
+        href: '/manifest.json',
+      },
     ],
   }),
 
   component: RootComponent,
+  notFoundComponent: NotFound,
 })
 
 function RootComponent() {
@@ -62,6 +76,7 @@ function RootComponent() {
           </ErrorBoundary>
         </main>
         <Footer />
+        <ScrollToTop />
       </div>
     </RootDocument>
   )

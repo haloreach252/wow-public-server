@@ -290,6 +290,91 @@ export const deleteGameAccount = createServerFn({ method: 'POST' })
     }
   })
 
+// Claim an existing game account (link pre-existing AzerothCore account to website account)
+export const claimGameAccount = createServerFn({ method: 'POST' })
+  .inputValidator((data: { accessToken: string; username: string; password: string }) => data)
+  .handler(async ({ data }): Promise<GameAccountResult> => {
+    try {
+      const userId = await getAuthenticatedUserId(data.accessToken)
+
+      if (!userId) {
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      // Check if user already has a game account
+      const existingAccount = await prisma.gameAccount.findUnique({
+        where: { supabaseUserId: userId },
+      })
+
+      if (existingAccount) {
+        return { success: false, error: 'You already have a game account linked' }
+      }
+
+      // Normalize username
+      const username = data.username.toLowerCase()
+
+      // Check if this username is already claimed by another website user
+      const existingClaim = await prisma.gameAccount.findUnique({
+        where: { gameUsername: username },
+      })
+
+      if (existingClaim) {
+        return { success: false, error: 'This game account is already linked to another website account' }
+      }
+
+      // Call admin panel to verify the credentials
+      if (!PUBLIC_SITE_SERVICE_KEY) {
+        return { success: false, error: 'Server configuration error: missing service key' }
+      }
+
+      const adminResponse = await fetch(`${ADMIN_PANEL_URL}/api/public/account/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Service-Key': PUBLIC_SITE_SERVICE_KEY,
+        },
+        body: JSON.stringify({
+          username: username,
+          password: data.password,
+        }),
+      })
+
+      if (!adminResponse.ok) {
+        const errorData = await adminResponse.json().catch(() => ({}))
+        return {
+          success: false,
+          error: errorData.error || `Admin panel error: ${adminResponse.status}`
+        }
+      }
+
+      const adminResult = await adminResponse.json()
+
+      if (!adminResult.success) {
+        return { success: false, error: adminResult.error || 'Invalid username or password' }
+      }
+
+      // Credentials verified - create the link in our database
+      const gameAccount = await prisma.gameAccount.create({
+        data: {
+          supabaseUserId: userId,
+          gameUsername: username,
+        },
+      })
+
+      return {
+        success: true,
+        gameAccount: {
+          id: gameAccount.id,
+          gameUsername: gameAccount.gameUsername,
+          createdAt: gameAccount.createdAt.toISOString(),
+        },
+      }
+    } catch (error) {
+      console.error('Error claiming game account:', error)
+      return { success: false, error: 'Failed to claim game account' }
+    }
+  })
+
 // Delete entire user account (game account + website account)
 export const deleteUserAccount = createServerFn({ method: 'POST' })
   .inputValidator((data: { accessToken: string }) => data)

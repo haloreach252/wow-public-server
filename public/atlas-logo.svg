@@ -1,0 +1,69 @@
+<svg
+  width="512"
+  height="512"
+  viewBox="0 0 64 64"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Background (optional - remove for transparent) -->
+  <rect width="64" height="64" rx="12" fill="#0a0a0a"/>
+
+  <!-- Outer ring -->
+  <circle
+    cx="32"
+    cy="32"
+    r="28"
+    stroke="#d4a74a"
+    stroke-width="2"
+    fill="none"
+  />
+
+  <!-- Inner ring -->
+  <circle
+    cx="32"
+    cy="32"
+    r="22"
+    stroke="#d4a74a"
+    stroke-width="1.5"
+    fill="none"
+    opacity="0.6"
+  />
+
+  <!-- Cardinal direction markers -->
+  <!-- North -->
+  <line x1="32" y1="6" x2="32" y2="12" stroke="#d4a74a" stroke-width="2" />
+  <!-- South -->
+  <line x1="32" y1="52" x2="32" y2="58" stroke="#d4a74a" stroke-width="2" />
+  <!-- East -->
+  <line x1="52" y1="32" x2="58" y2="32" stroke="#d4a74a" stroke-width="2" />
+  <!-- West -->
+  <line x1="6" y1="32" x2="12" y2="32" stroke="#d4a74a" stroke-width="2" />
+
+  <!-- Compass needle - North (filled, pointing up) -->
+  <polygon
+    points="32,14 38,32 32,28 26,32"
+    fill="#d4a74a"
+  />
+
+  <!-- Compass needle - South (outline, pointing down) -->
+  <polygon
+    points="32,50 38,32 32,36 26,32"
+    stroke="#d4a74a"
+    stroke-width="1.5"
+    fill="none"
+    opacity="0.7"
+  />
+
+  <!-- Center dot -->
+  <circle cx="32" cy="32" r="3" fill="#d4a74a" />
+
+  <!-- Decorative inner markers -->
+  <!-- NE -->
+  <line x1="47" y1="17" x2="44" y2="20" stroke="#d4a74a" stroke-width="1" opacity="0.5" />
+  <!-- NW -->
+  <line x1="17" y1="17" x2="20" y2="20" stroke="#d4a74a" stroke-width="1" opacity="0.5" />
+  <!-- SE -->
+  <line x1="47" y1="47" x2="44" y2="44" stroke="#d4a74a" stroke-width="1" opacity="0.5" />
+  <!-- SW -->
+  <line x1="17" y1="47" x2="20" y2="44" stroke="#d4a74a" stroke-width="1" opacity="0.5" />
+</svg>

@@ -147,13 +147,32 @@ function DownloadPage() {
                 title="Create an Account"
                 description="Register on our website and create your game account."
               >
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <Button asChild>
-                    <Link to="/register">Create Account</Link>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <Link to="/login">Already have an account? Login</Link>
-                  </Button>
+                <div className="space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button asChild>
+                      <Link to="/register">Create Website Account</Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link to="/login">Already have an account? Login</Link>
+                    </Button>
+                  </div>
+                  <Card className="bg-primary/5 border-primary/20">
+                    <CardContent className="py-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-primary mb-1">Don't forget your Game Account!</p>
+                          <p className="text-sm text-muted-foreground">
+                            After registering, go to your{' '}
+                            <Link to="/account/game" className="text-primary hover:underline">
+                              Account Dashboard
+                            </Link>{' '}
+                            to create your in-game username and password. This is separate from your website login.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </SetupStep>
 

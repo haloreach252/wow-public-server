@@ -8,6 +8,7 @@ interface ServerStatusWidgetProps {
   showPlayerCount?: boolean
   showUptime?: boolean
   refetchInterval?: number
+  compact?: boolean
 }
 
 export function ServerStatusWidget({
@@ -15,6 +16,7 @@ export function ServerStatusWidget({
   showPlayerCount = true,
   showUptime = false,
   refetchInterval = 60000, // 1 minute default
+  compact = false,
 }: ServerStatusWidgetProps) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['serverStatus'],
@@ -27,6 +29,50 @@ export function ServerStatusWidget({
   const status = data?.status
   const isOnline = status?.online ?? false
 
+  // Compact version for navbar
+  if (compact) {
+    if (isLoading) {
+      return (
+        <div className={cn('flex items-center gap-1.5', className)}>
+          <Circle className="h-2 w-2 text-muted-foreground animate-pulse" fill="currentColor" />
+          <span className="text-xs text-muted-foreground">...</span>
+        </div>
+      )
+    }
+
+    if (isError || !data?.success) {
+      return (
+        <div className={cn('flex items-center gap-1.5', className)}>
+          <Circle className="h-2 w-2 text-muted-foreground" fill="currentColor" />
+          <span className="text-xs text-muted-foreground">Unknown</span>
+        </div>
+      )
+    }
+
+    return (
+      <div className={cn('flex items-center gap-2', className)}>
+        <div className="flex items-center gap-1.5">
+          <Circle
+            className={cn('h-2 w-2', isOnline ? 'text-green-500' : 'text-red-500')}
+            fill="currentColor"
+          />
+          <span className={cn('text-xs font-medium', isOnline ? 'text-green-500' : 'text-red-500')}>
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
+        </div>
+        {showPlayerCount && isOnline && status?.playerCount !== undefined && (
+          <>
+            <span className="text-muted-foreground/50">•</span>
+            <span className="text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{status.playerCount}</span> online
+            </span>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // Full version
   if (isLoading) {
     return (
       <div className={cn('flex items-center gap-3 px-4 py-2 rounded-full bg-muted/50 border border-border', className)}>

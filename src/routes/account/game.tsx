@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Gamepad2, User, Lock, AlertCircle, CheckCircle2, Loader2, Info, Trash2 } from 'lucide-react'
+import { ArrowLeft, Gamepad2, User, Lock, AlertCircle, CheckCircle2, Loader2, Info, Trash2, Link2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/lib/auth-context'
-import { getGameAccount, createGameAccount, changeGamePassword, deleteGameAccount, type GameAccountInfo } from '@/lib/game-account'
+import { getGameAccount, createGameAccount, claimGameAccount, changeGamePassword, deleteGameAccount, type GameAccountInfo } from '@/lib/game-account'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getSession } from '@/lib/auth'
 import { toast } from 'sonner'
 
@@ -103,7 +104,18 @@ function GameAccountContent() {
 
       <div className="max-w-2xl space-y-6">
         {!hasGameAccount ? (
-          <CreateGameAccountSection onSuccess={fetchGameAccount} />
+          <Tabs defaultValue="create" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="create">Create New Account</TabsTrigger>
+              <TabsTrigger value="link">Link Existing Account</TabsTrigger>
+            </TabsList>
+            <TabsContent value="create">
+              <CreateGameAccountSection onSuccess={fetchGameAccount} />
+            </TabsContent>
+            <TabsContent value="link">
+              <ClaimGameAccountSection onSuccess={fetchGameAccount} />
+            </TabsContent>
+          </Tabs>
         ) : (
           <>
             {/* Game Account Info */}
@@ -331,6 +343,142 @@ function CreateGameAccountSection({ onSuccess }: { onSuccess: () => void }) {
               </>
             ) : (
               'Create Game Account'
+            )}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ClaimGameAccountSection({ onSuccess }: { onSuccess: () => void }) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!username || !password) {
+      setError('Username and password are required')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const session = await getSession()
+      if (!session?.access_token) {
+        setError('Not authenticated')
+        return
+      }
+
+      const result = await claimGameAccount({
+        data: {
+          accessToken: session.access_token,
+          username: username.toLowerCase(),
+          password,
+        },
+      })
+
+      if (result.success) {
+        setSuccess(true)
+        onSuccess()
+      } else {
+        setError(result.error || 'Failed to link game account')
+      }
+    } catch {
+      setError('An unexpected error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          Link Existing Account
+        </CardTitle>
+        <CardDescription>
+          Connect a game account you already created before the website launched
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="flex items-center gap-2 p-3 text-sm text-green-500 bg-green-500/10 rounded-md">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
+              <span>Game account linked successfully!</span>
+            </div>
+          )}
+
+          <div className="p-3 bg-muted/50 rounded-md mb-4">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-primary mt-0.5" />
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-1">For Existing Players</p>
+                <p>
+                  If you already have a game account that was created before this website,
+                  enter your existing credentials to link it to your website account.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="claimUsername">Game Username</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="claimUsername"
+                type="text"
+                placeholder="Your existing game username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                className="pl-10"
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="claimPassword">Game Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="claimPassword"
+                type="password"
+                placeholder="Your existing game password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                disabled={loading}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              We verify your credentials against the game server to confirm ownership
+            </p>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              'Link Game Account'
             )}
           </Button>
         </form>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { siteConfig } from '@/lib/config'
 import { useAuth } from '@/lib/auth-context'
 import { AtlasLogo } from '@/components/icons/AtlasLogo'
+import { ServerStatusWidget } from '@/components/widgets'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -42,8 +43,15 @@ export function Header() {
           ))}
         </nav>
 
-        {/* Desktop Auth Buttons */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Desktop: Server Status + Auth Buttons */}
+        <div className="hidden md:flex items-center gap-4">
+          {/* Server Status */}
+          <ServerStatusWidget compact showPlayerCount={true} />
+
+          <div className="h-4 w-px bg-border" />
+
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-3">
           {loading ? (
             <div className="h-9 w-20 bg-muted/50 rounded-md animate-pulse" />
           ) : user ? (
@@ -69,6 +77,7 @@ export function Header() {
               </Button>
             </>
           )}
+          </div>
         </div>
 
         {/* Mobile Menu Button */}
@@ -85,6 +94,11 @@ export function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-border bg-background">
           <nav className="container mx-auto px-4 py-4 flex flex-col gap-2">
+            {/* Mobile Server Status */}
+            <div className="py-2 mb-2 border-b border-border">
+              <ServerStatusWidget compact showPlayerCount={true} />
+            </div>
+
             {siteConfig.nav.main.map((item) => (
               <Link
                 key={item.href}

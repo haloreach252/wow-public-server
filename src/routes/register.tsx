@@ -191,7 +191,7 @@ function RegisterPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="At least 8 characters"
+                    placeholder="Create a secure password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
@@ -199,6 +199,9 @@ function RegisterPage() {
                     required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Must be at least 8 characters long
+                </p>
               </div>
 
               <div className="space-y-2">

@@ -1,12 +1,12 @@
 import { createFileRoute, Link, notFound } from '@tanstack/react-router'
-import { ArrowLeft, BookOpen, Calendar, FileText, Scroll, User } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, BookOpen, Calendar, ChevronRight, FileText, Home, Scroll, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TiptapRenderer } from '@/components/content'
+import { getPublishedContent, type ContentDetailResult } from '@/lib/content'
 import { cn } from '@/lib/utils'
 import { siteConfig } from '@/lib/config'
-import * as contentService from '@/server/services/content'
 import type { ContentType } from '@/generated/prisma/client'
-import type { ContentDetail } from '@/server/services/content'
 
 const typeConfig: Record<ContentType, { icon: typeof Scroll; label: string; color: string }> = {
   release: { icon: Scroll, label: 'Release', color: 'text-yellow-500' },
@@ -21,74 +21,51 @@ export const Route = createFileRoute('/content/$type/$slug')({
     if (!['release', 'blog', 'wiki'].includes(params.type)) {
       throw notFound()
     }
-
-    // Fetch content server-side for SEO
-    const result = await contentService.getPublishedContent(params.slug)
-
-    if (!result.success || !result.content) {
-      throw notFound()
-    }
-
-    // Verify the content type matches the URL
-    if (result.content.type !== params.type) {
-      throw notFound()
-    }
-
-    return {
-      type: params.type as ContentType,
-      slug: params.slug,
-      content: result.content,
-    }
-  },
-  head: ({ loaderData }) => {
-    const content = loaderData?.content as ContentDetail | undefined
-    if (!content) {
-      return {
-        meta: [{ title: `Content Not Found | ${siteConfig.name}` }],
-      }
-    }
-
-    const title = `${content.title} | ${siteConfig.name}`
-    const description = content.summary || siteConfig.description
-    const image = content.featuredImage || undefined
-
-    return {
-      meta: [
-        { title },
-        { name: 'description', content: description },
-        // Open Graph
-        { property: 'og:type', content: 'article' },
-        { property: 'og:title', content: content.title },
-        { property: 'og:description', content: description },
-        { property: 'og:site_name', content: siteConfig.name },
-        ...(image ? [{ property: 'og:image', content: image }] : []),
-        ...(content.publishedAt
-          ? [{ property: 'article:published_time', content: content.publishedAt }]
-          : []),
-        ...(content.authorName
-          ? [{ property: 'article:author', content: content.authorName }]
-          : []),
-        // Twitter Card
-        { name: 'twitter:card', content: image ? 'summary_large_image' : 'summary' },
-        { name: 'twitter:title', content: content.title },
-        { name: 'twitter:description', content: description },
-        ...(image ? [{ name: 'twitter:image', content: image }] : []),
-      ],
-    }
+    return { type: params.type as ContentType, slug: params.slug }
   },
 })
 
 function ContentDetailPage() {
-  const loaderData = Route.useLoaderData()
-  const contentType = loaderData?.type as ContentType
-  const content = loaderData?.content
-  const config = typeConfig[contentType]
-  const Icon = config?.icon || Scroll
+  const { slug, type } = Route.useParams()
 
-  // This shouldn't happen since loader throws notFound, but satisfy TypeScript
-  if (!content) {
-    return null
+  const { data, isLoading, error } = useQuery<ContentDetailResult>({
+    queryKey: ['content', 'detail', slug],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    queryFn: () => (getPublishedContent as any)({ data: { slug } }),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-32 bg-muted rounded" />
+          <div className="h-12 w-3/4 bg-muted rounded" />
+          <div className="h-6 w-1/2 bg-muted rounded" />
+          <div className="h-64 bg-muted rounded mt-8" />
+        </div>
+      </div>
+    )
   }
+
+  if (error || !data?.success || !data.content) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-4xl text-center">
+        <Scroll className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+        <h1 className="text-2xl font-bold mb-4">Content Not Found</h1>
+        <p className="text-muted-foreground mb-8">
+          The content you're looking for doesn't exist or has been removed.
+        </p>
+        <Button asChild>
+          <Link to="/content" search={{ type: undefined, page: 1 }}>Browse Content</Link>
+        </Button>
+      </div>
+    )
+  }
+
+  const content = data.content
+  const contentType = type as ContentType
+  const config = typeConfig[contentType]
+  const Icon = config.icon
 
   const formattedDate = content.publishedAt
     ? new Date(content.publishedAt).toLocaleDateString('en-US', {
@@ -100,15 +77,28 @@ function ContentDetailPage() {
 
   return (
     <article className="container mx-auto px-4 py-12 max-w-4xl">
-      {/* Back Link */}
-      <Link
-        to="/content"
-        search={{ type: contentType, page: 1 }}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to {config.label}s
-      </Link>
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-8" aria-label="Breadcrumb">
+        <Link to="/" className="hover:text-foreground transition-colors">
+          <Home className="h-4 w-4" />
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link to="/content" search={{ type: undefined, page: 1 }} className="hover:text-foreground transition-colors">
+          News
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link
+          to="/content"
+          search={{ type: contentType, page: 1 }}
+          className="hover:text-foreground transition-colors"
+        >
+          {config.label}s
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="text-foreground font-medium truncate max-w-[200px]" title={content.title}>
+          {content.title}
+        </span>
+      </nav>
 
       {/* Header */}
       <header className="mb-8">

@@ -23,6 +23,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountGameRouteImport } from './routes/account/game'
 import { Route as ContentTypeSlugRouteImport } from './routes/content/$type.$slug'
+import { Route as ApiDownloadPatcherRouteImport } from './routes/api/download/patcher'
 import { Route as ApiPublicContentIndexRouteImport } from './routes/api/public/content/index'
 import { Route as ApiPublicContentIdRouteImport } from './routes/api/public/content/$id'
 
@@ -96,6 +97,11 @@ const ContentTypeSlugRoute = ContentTypeSlugRouteImport.update({
   path: '/content/$type/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDownloadPatcherRoute = ApiDownloadPatcherRouteImport.update({
+  id: '/api/download/patcher',
+  path: '/api/download/patcher',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicContentIndexRoute = ApiPublicContentIndexRouteImport.update({
   id: '/api/public/content/',
   path: '/api/public/content/',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/test/$id': typeof TestIdRoute
   '/account': typeof AccountIndexRoute
   '/content': typeof ContentIndexRoute
+  '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content': typeof ApiPublicContentIndexRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/test/$id': typeof TestIdRoute
   '/account': typeof AccountIndexRoute
   '/content': typeof ContentIndexRoute
+  '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content': typeof ApiPublicContentIndexRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/test/$id': typeof TestIdRoute
   '/account/': typeof AccountIndexRoute
   '/content/': typeof ContentIndexRoute
+  '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content/': typeof ApiPublicContentIndexRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/test/$id'
     | '/account'
     | '/content'
+    | '/api/download/patcher'
     | '/content/$type/$slug'
     | '/api/public/content/$id'
     | '/api/public/content'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/test/$id'
     | '/account'
     | '/content'
+    | '/api/download/patcher'
     | '/content/$type/$slug'
     | '/api/public/content/$id'
     | '/api/public/content'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/test/$id'
     | '/account/'
     | '/content/'
+    | '/api/download/patcher'
     | '/content/$type/$slug'
     | '/api/public/content/$id'
     | '/api/public/content/'
@@ -233,6 +245,7 @@ export interface RootRouteChildren {
   TestIdRoute: typeof TestIdRoute
   AccountIndexRoute: typeof AccountIndexRoute
   ContentIndexRoute: typeof ContentIndexRoute
+  ApiDownloadPatcherRoute: typeof ApiDownloadPatcherRoute
   ContentTypeSlugRoute: typeof ContentTypeSlugRoute
   ApiPublicContentIdRoute: typeof ApiPublicContentIdRoute
   ApiPublicContentIndexRoute: typeof ApiPublicContentIndexRoute
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentTypeSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/download/patcher': {
+      id: '/api/download/patcher'
+      path: '/api/download/patcher'
+      fullPath: '/api/download/patcher'
+      preLoaderRoute: typeof ApiDownloadPatcherRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/content/': {
       id: '/api/public/content/'
       path: '/api/public/content'
@@ -369,6 +389,7 @@ const rootRouteChildren: RootRouteChildren = {
   TestIdRoute: TestIdRoute,
   AccountIndexRoute: AccountIndexRoute,
   ContentIndexRoute: ContentIndexRoute,
+  ApiDownloadPatcherRoute: ApiDownloadPatcherRoute,
   ContentTypeSlugRoute: ContentTypeSlugRoute,
   ApiPublicContentIdRoute: ApiPublicContentIdRoute,
   ApiPublicContentIndexRoute: ApiPublicContentIndexRoute,

@@ -26,7 +26,7 @@ export const siteConfig = {
   // External links
   links: {
     // Where to direct users for the WoW client
-    clientDownload: 'https://example.com/wow-client',
+    clientDownload: 'https://www.chromiecraft.com/en/downloads/#',
   },
   // Feature flags
   features: {

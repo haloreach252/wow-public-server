@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   AlertCircle,
   FileDown,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -94,13 +95,13 @@ function DownloadPage() {
                       <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground mb-3">
-                          If you don't already have a WoW 3.3.5a client, you can obtain one from various sources online.
+                          If you don't already have a WoW 3.3.5a client, ChromieCraft provides an unmodified client download.
                           Make sure you get version <strong>3.3.5a (build 12340)</strong>.
                         </p>
                         <Button variant="outline" size="sm" asChild>
                           <a href={siteConfig.links.clientDownload} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="mr-2 h-4 w-4" />
-                            Find Client
+                            Download from ChromieCraft
                           </a>
                         </Button>
                       </div>
@@ -141,9 +142,11 @@ function DownloadPage() {
                           <p className="text-sm text-muted-foreground">Windows only</p>
                         </div>
                       </div>
-                      <Button disabled>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Coming Soon
+                      <Button asChild>
+                        <a href="/api/download/patcher">
+                          <Download className="mr-2 h-4 w-4" />
+                          Download Patcher
+                        </a>
                       </Button>
                     </div>
                   </CardContent>
@@ -151,6 +154,24 @@ function DownloadPage() {
                 <p className="text-sm text-muted-foreground mt-3">
                   The patcher will automatically update your client with our custom patches and realmlist.
                 </p>
+
+                {/* Windows Security Note */}
+                <Card className="bg-amber-500/10 border-amber-500/30 mt-4">
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      <ShieldAlert className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium text-amber-500 mb-1">Windows SmartScreen Warning</p>
+                        <p className="text-sm text-muted-foreground">
+                          Windows may show a security warning because the patcher isn't signed with a
+                          certificate. This is normal for independent software. The patcher is safe to use -
+                          click "More info" then "Run anyway" to proceed. The patcher only modifies files
+                          within your WoW directory and connects to our update servers.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </SetupStep>
 
               {/* Step 4 */}
@@ -213,8 +234,12 @@ function DownloadPage() {
 
             <div className="space-y-4">
               <TroubleshootItem
-                question="The patcher won't start"
-                answer="Make sure you're running it as Administrator. Some antivirus software may flag custom patchers - you may need to add an exception."
+                question="Windows shows a security warning"
+                answer="Windows SmartScreen may block the patcher because it's not signed with a certificate. Click 'More info' then 'Run anyway' to proceed. This is normal for independent software and the patcher is safe to use."
+              />
+              <TroubleshootItem
+                question="The patcher won't start or is blocked by antivirus"
+                answer="Some antivirus software may flag custom patchers. Try adding an exception for the patcher in your antivirus settings. Also make sure you're running it as Administrator."
               />
               <TroubleshootItem
                 question="I'm getting 'Unable to connect' errors"

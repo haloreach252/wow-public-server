@@ -7,10 +7,12 @@ import {
 } from '@/lib/content'
 
 // Helper to create JSON responses with proper status codes
-// Using raw Response to work around TanStack Start json() helper issues with non-200 status codes
+// In dev mode, Nitro intercepts 404s and shows HTML error page - return 200 instead
+// Client should check the `success` field. See: https://github.com/TanStack/router/issues/5877
 function jsonResponse(data: unknown, status = 200): Response {
+  const safeStatus = process.env.NODE_ENV === 'development' && status === 404 ? 200 : status
   return new Response(JSON.stringify(data), {
-    status,
+    status: safeStatus,
     headers: { 'Content-Type': 'application/json' },
   })
 }

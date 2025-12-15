@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import {
   Download,
   Monitor,
@@ -9,13 +11,42 @@ import {
   AlertCircle,
   FileDown,
   ShieldAlert,
+  ShieldCheck,
+  Copy,
+  Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { siteConfig } from '@/lib/config'
+import { toast } from 'sonner'
+
+interface PatcherInfoResponse {
+  success: boolean
+  filename?: string
+  size?: number
+  sizeFormatted?: string
+  sha256?: string
+  lastModified?: string
+  error?: string
+}
 
 export const Route = createFileRoute('/download')({
   component: DownloadPage,
+  head: () => ({
+    meta: [
+      { title: `Download & Get Started | ${siteConfig.name}` },
+      {
+        name: 'description',
+        content: `Download the ${siteConfig.name} patcher and get started playing. System requirements, setup instructions, and troubleshooting guide.`,
+      },
+      { property: 'og:title', content: `Download & Get Started | ${siteConfig.name}` },
+      {
+        property: 'og:description',
+        content: `Download the ${siteConfig.name} patcher and get started playing. System requirements, setup instructions, and troubleshooting guide.`,
+      },
+      { property: 'og:type', content: 'website' },
+    ],
+  }),
 })
 
 function DownloadPage() {
@@ -132,25 +163,7 @@ function DownloadPage() {
                 title="Download the Patcher"
                 description="Our custom patcher will download and apply necessary updates to your client."
               >
-                <Card className="bg-muted/30 border-border">
-                  <CardContent className="py-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <FileDown className="h-8 w-8 text-primary" />
-                        <div>
-                          <p className="font-medium">{siteConfig.name} Patcher</p>
-                          <p className="text-sm text-muted-foreground">Windows only</p>
-                        </div>
-                      </div>
-                      <Button asChild>
-                        <a href="/api/download/patcher">
-                          <Download className="mr-2 h-4 w-4" />
-                          Download Patcher
-                        </a>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <PatcherDownloadCard />
                 <p className="text-sm text-muted-foreground mt-3">
                   The patcher will automatically update your client with our custom patches and realmlist.
                 </p>
@@ -318,6 +331,84 @@ function TroubleshootItem({
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">{answer}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function PatcherDownloadCard() {
+  const [copied, setCopied] = useState(false)
+
+  const { data: patcherInfo } = useQuery<PatcherInfoResponse>({
+    queryKey: ['patcher-info'],
+    queryFn: async () => {
+      const response = await fetch('/api/download/patcher-info')
+      return response.json()
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
+  })
+
+  const copyChecksum = async () => {
+    if (patcherInfo?.sha256) {
+      await navigator.clipboard.writeText(patcherInfo.sha256)
+      setCopied(true)
+      toast.success('Checksum copied to clipboard')
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <Card className="bg-muted/30 border-border">
+      <CardContent className="py-4 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <FileDown className="h-8 w-8 text-primary" />
+            <div>
+              <p className="font-medium">{siteConfig.name} Patcher</p>
+              <p className="text-sm text-muted-foreground">
+                Windows only
+                {patcherInfo?.sizeFormatted && ` • ${patcherInfo.sizeFormatted}`}
+              </p>
+            </div>
+          </div>
+          <Button asChild>
+            <a href="/api/download/patcher">
+              <Download className="mr-2 h-4 w-4" />
+              Download Patcher
+            </a>
+          </Button>
+        </div>
+
+        {/* Checksum verification */}
+        {patcherInfo?.sha256 && (
+          <div className="pt-2 border-t border-border">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="h-4 w-4 text-green-500" />
+              <span className="text-sm font-medium">Verify Download (SHA-256)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 text-xs font-mono bg-background/50 px-2 py-1.5 rounded border border-border overflow-x-auto">
+                {patcherInfo.sha256}
+              </code>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyChecksum}
+                className="flex-shrink-0"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Compare this checksum with the downloaded file to verify integrity.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

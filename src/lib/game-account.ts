@@ -289,3 +289,68 @@ export const deleteGameAccount = createServerFn({ method: 'POST' })
       return { success: false, error: 'Failed to delete game account' }
     }
   })
+
+// Delete entire user account (game account + website account)
+export const deleteUserAccount = createServerFn({ method: 'POST' })
+  .inputValidator((data: { accessToken: string }) => data)
+  .handler(async ({ data }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const serverClient = createServerSupabaseClient()
+      const { data: userData, error: userError } = await serverClient.auth.getUser(data.accessToken)
+
+      if (userError || !userData.user) {
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      const userId = userData.user.id
+
+      // Step 1: Delete game account if exists
+      const gameAccount = await prisma.gameAccount.findUnique({
+        where: { supabaseUserId: userId },
+      })
+
+      if (gameAccount) {
+        // Call admin panel to delete the game account via SOAP
+        if (PUBLIC_SITE_SERVICE_KEY) {
+          try {
+            const adminResponse = await fetch(`${ADMIN_PANEL_URL}/api/public/account/delete`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Service-Key': PUBLIC_SITE_SERVICE_KEY,
+              },
+              body: JSON.stringify({
+                username: gameAccount.gameUsername,
+              }),
+            })
+
+            if (!adminResponse.ok) {
+              console.error('Failed to delete game account from game server')
+              // Continue anyway - we'll still delete from our DB and Supabase
+            }
+          } catch (err) {
+            console.error('Error calling admin panel for game account deletion:', err)
+            // Continue anyway
+          }
+        }
+
+        // Remove the game account link from our database
+        await prisma.gameAccount.delete({
+          where: { id: gameAccount.id },
+        })
+      }
+
+      // Step 2: Delete the Supabase user account using admin API
+      const { error: deleteError } = await serverClient.auth.admin.deleteUser(userId)
+
+      if (deleteError) {
+        console.error('Error deleting Supabase user:', deleteError)
+        return { success: false, error: 'Failed to delete account. Please try again or contact support.' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error deleting user account:', error)
+      return { success: false, error: 'Failed to delete account' }
+    }
+  })

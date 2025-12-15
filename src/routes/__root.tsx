@@ -8,6 +8,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { Header, Footer } from '@/components/layout'
+import { ErrorBoundary } from '@/components/error'
 import { siteConfig } from '@/lib/config'
 import { AuthProvider } from '@/lib/auth-context'
 
@@ -56,7 +57,9 @@ function RootComponent() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
         <Footer />
       </div>

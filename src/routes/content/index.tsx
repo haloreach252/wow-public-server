@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ContentCard } from '@/components/content'
 import { listPublishedContent, type ContentListResult } from '@/lib/content'
 import { cn } from '@/lib/utils'
+import { siteConfig } from '@/lib/config'
 import type { ContentType } from '@/generated/prisma/client'
 
 const contentTypes = [
@@ -20,6 +21,21 @@ export const Route = createFileRoute('/content/')({
     page: Number(search.page ?? 1),
   }),
   component: ContentListPage,
+  head: () => ({
+    meta: [
+      { title: `News & Updates | ${siteConfig.name}` },
+      {
+        name: 'description',
+        content: `Latest news, updates, and announcements from ${siteConfig.name}. Stay informed about new content, patches, and server updates.`,
+      },
+      { property: 'og:title', content: `News & Updates | ${siteConfig.name}` },
+      {
+        property: 'og:description',
+        content: `Latest news, updates, and announcements from ${siteConfig.name}. Stay informed about new content, patches, and server updates.`,
+      },
+      { property: 'og:type', content: 'website' },
+    ],
+  }),
 })
 
 function ContentListPage() {

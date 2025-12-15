@@ -21,6 +21,7 @@ import {
 interface AuthContextType {
   user: User | null
   loading: boolean
+  sessionExpiresAt: number | null // Unix timestamp
   signIn: (email: string, password: string) => Promise<AuthResult>
   signUp: (email: string, password: string) => Promise<AuthResult>
   signOut: () => Promise<void>
@@ -33,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null)
 
   // Initialize auth state
   useEffect(() => {
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const session = await getSession()
         if (session?.user && mounted) {
           setUser(session.user)
+          setSessionExpiresAt(session.expires_at ?? null)
         }
       } catch (error) {
         console.error('Error initializing auth:', error)
@@ -57,12 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth()
 
     // Subscribe to auth changes
-    const subscription = onAuthStateChange((newUser, event) => {
+    const subscription = onAuthStateChange(async (newUser, event) => {
       if (mounted) {
         setUser(newUser)
         // Handle specific events if needed
         if (event === 'SIGNED_OUT') {
           setUser(null)
+          setSessionExpiresAt(null)
+        } else if (newUser) {
+          // Update session expiry on auth state change
+          const session = await getSession()
+          setSessionExpiresAt(session?.expires_at ?? null)
         }
       }
     })
@@ -120,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         loading,
+        sessionExpiresAt,
         signIn,
         signUp,
         signOut,

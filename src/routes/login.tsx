@@ -16,6 +16,12 @@ import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/login')({
   component: LoginPage,
+  head: () => ({
+    meta: [
+      { title: `Login | ${siteConfig.name}` },
+      { name: 'description', content: `Sign in to your ${siteConfig.name} account.` },
+    ],
+  }),
 })
 
 type LoginState =

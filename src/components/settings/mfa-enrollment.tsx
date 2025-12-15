@@ -346,13 +346,19 @@ export function MfaEnrollment() {
   )
 }
 
-// Generate 10 random recovery codes
+// Generate 10 cryptographically secure recovery codes
 function generateRecoveryCodes(): string[] {
   const codes: string[] = []
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
   for (let i = 0; i < 10; i++) {
-    const code = Array.from({ length: 8 }, () =>
-      Math.random().toString(36).charAt(2).toUpperCase()
+    const randomBytes = new Uint8Array(8)
+    crypto.getRandomValues(randomBytes)
+
+    const code = Array.from(randomBytes, (byte) =>
+      charset[byte % charset.length]
     ).join('')
+
     codes.push(`${code.slice(0, 4)}-${code.slice(4)}`)
   }
   return codes

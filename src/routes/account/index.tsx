@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { User, Settings, Gamepad2, Shield, Mail, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { User, Settings, Gamepad2, Shield, Mail, CheckCircle2, AlertCircle, Loader2, Clock } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
@@ -8,6 +8,25 @@ import { useAuth } from '@/lib/auth-context'
 import { getGameAccount, type GameAccountInfo } from '@/lib/game-account'
 import { getSession } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
+
+function formatTimeRemaining(expiresAt: number): string {
+  const now = Math.floor(Date.now() / 1000)
+  const diff = expiresAt - now
+
+  if (diff <= 0) return 'Expired'
+
+  const hours = Math.floor(diff / 3600)
+  const minutes = Math.floor((diff % 3600) / 60)
+
+  if (hours > 24) {
+    const days = Math.floor(hours / 24)
+    return `${days}d ${hours % 24}h remaining`
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`
+  }
+  return `${minutes}m remaining`
+}
 
 export const Route = createFileRoute('/account/')({
   component: AccountDashboard,
@@ -22,7 +41,7 @@ function AccountDashboard() {
 }
 
 function AccountDashboardContent() {
-  const { user } = useAuth()
+  const { user, sessionExpiresAt } = useAuth()
   const [gameAccount, setGameAccount] = useState<GameAccountInfo | null>(null)
   const [loadingGameAccount, setLoadingGameAccount] = useState(true)
   const [mfaEnabled, setMfaEnabled] = useState(false)
@@ -104,6 +123,12 @@ function AccountDashboardContent() {
                   </>
                 )}
               </div>
+              {sessionExpiresAt && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Session: {formatTimeRemaining(sessionExpiresAt)}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

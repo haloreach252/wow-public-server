@@ -5,6 +5,21 @@ import { siteConfig } from '@/lib/config'
 
 export const Route = createFileRoute('/about')({
   component: AboutPage,
+  head: () => ({
+    meta: [
+      { title: `About | ${siteConfig.name}` },
+      {
+        name: 'description',
+        content: `Learn about ${siteConfig.name}, a WotLK 3.3.5a Classic+ private server with custom content and reimagined zones.`,
+      },
+      { property: 'og:title', content: `About | ${siteConfig.name}` },
+      {
+        property: 'og:description',
+        content: `Learn about ${siteConfig.name}, a WotLK 3.3.5a Classic+ private server with custom content and reimagined zones.`,
+      },
+      { property: 'og:type', content: 'website' },
+    ],
+  }),
 })
 
 function AboutPage() {

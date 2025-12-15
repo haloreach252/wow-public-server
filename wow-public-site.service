@@ -1,0 +1,26 @@
+[Unit]
+Description=WoW Public Site
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/current/public
+ExecStart=/home/ubuntu/.nvm/versions/node/v24.11.1/bin/node /srv/current/public/server/index.mjs
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3001
+
+# Load environment variables from shared .env
+EnvironmentFile=/srv/shared/public/.env
+
+# Security hardening (optional but recommended)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/srv
+
+[Install]
+WantedBy=multi-user.target

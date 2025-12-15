@@ -3,7 +3,7 @@ import {
   adminCreateContent,
   adminListContent,
   validateServiceKey,
-} from '@/lib/content'
+} from '@/server/services/content'
 import type { ContentType } from '@/generated/prisma/client'
 
 // Helper to create JSON responses with proper status codes

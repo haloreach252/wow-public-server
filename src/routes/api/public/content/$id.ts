@@ -4,7 +4,7 @@ import {
   adminGetContent,
   adminUpdateContent,
   validateServiceKey,
-} from '@/lib/content'
+} from '@/server/services/content'
 
 // Helper to create JSON responses with proper status codes
 // In dev mode, Nitro intercepts 404s and shows HTML error page - return 200 instead

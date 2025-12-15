@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
+import { MfaEnrollment } from '@/components/settings/mfa-enrollment'
 
 export const Route = createFileRoute('/account/settings')({
   component: AccountSettingsPage,
@@ -46,6 +47,9 @@ function AccountSettingsContent() {
 
         {/* Password Section */}
         <ChangePasswordSection />
+
+        {/* Two-Factor Authentication */}
+        <MfaEnrollment />
 
         {/* Danger Zone */}
         <Card className="border-destructive/50">

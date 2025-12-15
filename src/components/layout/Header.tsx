@@ -1,9 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Menu, X, Sword, User, LogOut } from 'lucide-react'
+import { Menu, X, User, LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { siteConfig } from '@/lib/config'
 import { useAuth } from '@/lib/auth-context'
+import { AtlasLogo } from '@/components/icons/AtlasLogo'
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -19,7 +20,7 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <Sword className="h-8 w-8 text-primary" />
+          <AtlasLogo size={32} className="text-primary" />
           <span className="text-xl font-bold text-primary">
             {siteConfig.name}
           </span>

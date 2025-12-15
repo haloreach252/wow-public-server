@@ -4,12 +4,12 @@
  */
 
 export const siteConfig = {
-  // Server name - change this when you decide on a name
-  name: 'Server Name TBD',
+  // Server name
+  name: 'Project Atlas',
   // Short description for meta tags
   description: 'A WotLK 3.3.5a Classic+ Private Server',
   // Tagline for the homepage hero
-  tagline: 'Experience Azeroth Reimagined',
+  tagline: 'Chart Your Own Adventure',
   // Navigation links
   nav: {
     main: [

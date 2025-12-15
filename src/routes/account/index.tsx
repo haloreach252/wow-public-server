@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/lib/auth-context'
 import { getGameAccount, type GameAccountInfo } from '@/lib/game-account'
 import { getSession } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
 export const Route = createFileRoute('/account/')({
   component: AccountDashboard,
@@ -24,6 +25,8 @@ function AccountDashboardContent() {
   const { user } = useAuth()
   const [gameAccount, setGameAccount] = useState<GameAccountInfo | null>(null)
   const [loadingGameAccount, setLoadingGameAccount] = useState(true)
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [loadingMfa, setLoadingMfa] = useState(true)
 
   useEffect(() => {
     async function fetchGameAccount() {
@@ -42,7 +45,20 @@ function AccountDashboardContent() {
       }
     }
 
+    async function fetchMfaStatus() {
+      try {
+        const { data } = await supabase.auth.mfa.listFactors()
+        const hasVerifiedFactor = data?.totp.some(f => f.status === 'verified')
+        setMfaEnabled(hasVerifiedFactor || false)
+      } catch {
+        // Silently fail
+      } finally {
+        setLoadingMfa(false)
+      }
+    }
+
     fetchGameAccount()
+    fetchMfaStatus()
   }, [])
 
   const hasGameAccount = !!gameAccount
@@ -146,15 +162,32 @@ function AccountDashboardContent() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <AlertCircle className="h-4 w-4 text-yellow-500" />
-                <span className="text-yellow-500">MFA not enabled</span>
+            {loadingMfa ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Loading...</span>
               </div>
-              <Button variant="outline" size="sm" disabled>
-                Enable MFA (Coming Soon)
-              </Button>
-            </div>
+            ) : mfaEnabled ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  <span className="text-green-500">Two-factor authentication enabled</span>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/account/settings">Manage MFA</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <AlertCircle className="h-4 w-4 text-yellow-500" />
+                  <span className="text-yellow-500">MFA not enabled</span>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/account/settings">Enable MFA</Link>
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

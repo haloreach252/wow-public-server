@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { Sword } from 'lucide-react'
 import { siteConfig } from '@/lib/config'
+import { AtlasLogo } from '@/components/icons/AtlasLogo'
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -11,7 +11,7 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Logo and Name */}
           <div className="flex items-center gap-2">
-            <Sword className="h-6 w-6 text-primary" />
+            <AtlasLogo size={24} className="text-primary" />
             <span className="font-semibold text-primary">{siteConfig.name}</span>
           </div>
 

@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Download, Map, Scroll, Shield, Sparkles, Sword, Users } from 'lucide-react'
+import { ArrowRight, Download, Map, Scroll, Shield, Sparkles, Swords, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContentCard } from '@/components/content'
 import { ServerStatusWidget } from '@/components/widgets'
 import { getLatestContent, type ContentListResult } from '@/lib/content'
 import { siteConfig } from '@/lib/config'
+import { AtlasLogo } from '@/components/icons/AtlasLogo'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -23,7 +24,7 @@ function HomePage() {
 
         <div className="container relative mx-auto px-4 text-center">
           <div className="flex justify-center mb-6">
-            <Sword className="h-16 w-16 md:h-20 md:w-20 text-primary" />
+            <AtlasLogo size={80} className="text-primary" />
           </div>
 
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -103,7 +104,7 @@ function HomePage() {
               description="New content and improvements are released regularly to keep the experience fresh."
             />
             <FeatureCard
-              icon={<Sword className="h-8 w-8" />}
+              icon={<Swords className="h-8 w-8" />}
               title="WotLK 3.3.5a"
               description="Built on the beloved Wrath of the Lich King expansion, the pinnacle of classic WoW."
             />

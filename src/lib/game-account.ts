@@ -227,3 +227,65 @@ export const changeGamePassword = createServerFn({ method: 'POST' })
       return { success: false, error: 'Failed to change password' }
     }
   })
+
+// Delete game account
+export const deleteGameAccount = createServerFn({ method: 'POST' })
+  .inputValidator((data: { accessToken: string }) => data)
+  .handler(async ({ data }): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const userId = await getAuthenticatedUserId(data.accessToken)
+
+      if (!userId) {
+        return { success: false, error: 'Not authenticated' }
+      }
+
+      // Get the user's game account
+      const gameAccount = await prisma.gameAccount.findUnique({
+        where: { supabaseUserId: userId },
+      })
+
+      if (!gameAccount) {
+        return { success: false, error: 'You do not have a game account' }
+      }
+
+      // Call admin panel to delete the game account via SOAP
+      if (!PUBLIC_SITE_SERVICE_KEY) {
+        return { success: false, error: 'Server configuration error: missing service key' }
+      }
+
+      const adminResponse = await fetch(`${ADMIN_PANEL_URL}/api/public/account/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Service-Key': PUBLIC_SITE_SERVICE_KEY,
+        },
+        body: JSON.stringify({
+          username: gameAccount.gameUsername,
+        }),
+      })
+
+      if (!adminResponse.ok) {
+        const errorData = await adminResponse.json().catch(() => ({}))
+        return {
+          success: false,
+          error: errorData.error || `Admin panel error: ${adminResponse.status}`
+        }
+      }
+
+      const adminResult = await adminResponse.json()
+
+      if (!adminResult.success) {
+        return { success: false, error: adminResult.error || 'Failed to delete game account' }
+      }
+
+      // Remove the game account link from our database
+      await prisma.gameAccount.delete({
+        where: { id: gameAccount.id },
+      })
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error deleting game account:', error)
+      return { success: false, error: 'Failed to delete game account' }
+    }
+  })

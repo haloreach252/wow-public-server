@@ -1,14 +1,26 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Gamepad2, User, Lock, AlertCircle, CheckCircle2, Loader2, Info } from 'lucide-react'
+import { ArrowLeft, Gamepad2, User, Lock, AlertCircle, CheckCircle2, Loader2, Info, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/lib/auth-context'
-import { getGameAccount, createGameAccount, changeGamePassword, type GameAccountInfo } from '@/lib/game-account'
+import { getGameAccount, createGameAccount, changeGamePassword, deleteGameAccount, type GameAccountInfo } from '@/lib/game-account'
 import { getSession } from '@/lib/auth'
+import { toast } from 'sonner'
 
 export const Route = createFileRoute('/account/game')({
   component: GameAccountPage,
@@ -126,22 +138,12 @@ function GameAccountContent() {
             <ChangeGamePasswordSection username={gameUsername} />
 
             {/* Danger Zone */}
-            <Card className="border-destructive/50">
-              <CardHeader>
-                <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                <CardDescription>
-                  Irreversible actions that affect your game account
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button variant="destructive" disabled>
-                  Delete Game Account (Coming Soon)
-                </Button>
-                <p className="text-sm text-muted-foreground mt-2">
-                  This will permanently delete your game account and all characters.
-                </p>
-              </CardContent>
-            </Card>
+            <DeleteGameAccountSection
+              username={gameUsername}
+              onDeleted={() => {
+                setGameAccount(null)
+              }}
+            />
           </>
         )}
       </div>
@@ -455,6 +457,115 @@ function ChangeGamePasswordSection({ username }: { username: string }) {
             )}
           </Button>
         </form>
+      </CardContent>
+    </Card>
+  )
+}
+
+function DeleteGameAccountSection({ username, onDeleted }: { username: string; onDeleted: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const handleDelete = async () => {
+    if (confirmText !== username) {
+      toast.error('Username does not match')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const session = await getSession()
+      if (!session?.access_token) {
+        toast.error('Not authenticated')
+        return
+      }
+
+      const result = await deleteGameAccount({
+        data: { accessToken: session.access_token },
+      })
+
+      if (result.success) {
+        toast.success('Game account deleted successfully')
+        setDialogOpen(false)
+        setConfirmText('')
+        onDeleted()
+      } else {
+        toast.error(result.error || 'Failed to delete game account')
+      }
+    } catch {
+      toast.error('An unexpected error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card className="border-destructive/50">
+      <CardHeader>
+        <CardTitle className="text-destructive">Danger Zone</CardTitle>
+        <CardDescription>
+          Irreversible actions that affect your game account
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Game Account
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Game Account</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <span className="block">
+                  This action is <strong>permanent and cannot be undone</strong>. This will:
+                </span>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Delete your game account from the server</li>
+                  <li>Delete all characters associated with this account</li>
+                  <li>Remove all progression, items, and achievements</li>
+                </ul>
+                <span className="block pt-2">
+                  To confirm, type your game username: <strong>{username}</strong>
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-4">
+              <Input
+                placeholder={`Type "${username}" to confirm`}
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleDelete()
+                }}
+                disabled={loading || confirmText !== username}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Game Account'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <p className="text-sm text-muted-foreground">
+          This will permanently delete your game account and all characters.
+        </p>
       </CardContent>
     </Card>
   )

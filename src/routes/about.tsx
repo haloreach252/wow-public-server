@@ -125,8 +125,8 @@ function AboutPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InfoCard label="Game Version" value="WotLK 3.3.5a (12340)" />
               <InfoCard label="Server Core" value="AzerothCore" />
-              <InfoCard label="Experience Rate" value="TBD" />
-              <InfoCard label="Server Location" value="TBD" />
+              <InfoCard label="Experience Rate" value="2.5x" />
+              <InfoCard label="Server Location" value="Western US" />
             </div>
           </div>
         </div>

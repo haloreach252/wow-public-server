@@ -6,7 +6,7 @@ const PUBLIC_SITE_SERVICE_KEY = process.env.PUBLIC_SITE_SERVICE_KEY
 export const Route = createFileRoute('/api/download/patcher')({
   server: {
     handlers: {
-      // GET /api/download/patcher - Redirect to signed patcher download URL
+      // GET /api/download/patcher - Proxy patcher download from admin panel
       GET: async () => {
         try {
           if (!PUBLIC_SITE_SERVICE_KEY) {
@@ -14,7 +14,7 @@ export const Route = createFileRoute('/api/download/patcher')({
             return new Response('Service unavailable', { status: 503 })
           }
 
-          // Request signed URL from admin panel
+          // Request file from admin panel (it now returns the binary directly)
           const response = await fetch(
             `${ADMIN_PANEL_URL}/api/public/patcher-download`,
             {
@@ -22,33 +22,34 @@ export const Route = createFileRoute('/api/download/patcher')({
               headers: {
                 'X-Service-Key': PUBLIC_SITE_SERVICE_KEY,
               },
-              signal: AbortSignal.timeout(10000),
+              signal: AbortSignal.timeout(60000), // 60s timeout for file download
             }
           )
 
           if (!response.ok) {
-            console.error(`Admin panel patcher download error: ${response.status}`)
+            // Check if it's a JSON error response
+            const contentType = response.headers.get('Content-Type')
+            if (contentType?.includes('application/json')) {
+              const error = await response.json()
+              console.error('Admin panel patcher download error:', error)
+            } else {
+              console.error(`Admin panel patcher download error: ${response.status}`)
+            }
             return new Response('Download temporarily unavailable', { status: 502 })
           }
 
-          const data = await response.json()
-
-          if (!data.url) {
-            console.error('Admin panel returned no download URL')
-            return new Response('Download temporarily unavailable', { status: 502 })
-          }
-
-          // Redirect to the signed URL
-          return new Response(null, {
-            status: 302,
+          // Proxy the binary response with headers from admin panel
+          return new Response(response.body, {
+            status: 200,
             headers: {
-              Location: data.url,
-              // Prevent caching of the redirect since signed URLs expire
-              'Cache-Control': 'no-store, no-cache, must-revalidate',
+              'Content-Type': response.headers.get('Content-Type') || 'application/octet-stream',
+              'Content-Disposition': response.headers.get('Content-Disposition') || 'attachment; filename="AtlasPatcher.exe"',
+              'Content-Length': response.headers.get('Content-Length') || '',
+              'Cache-Control': 'public, max-age=300',
             },
           })
         } catch (error) {
-          console.error('Error fetching patcher download URL:', error)
+          console.error('Error fetching patcher download:', error)
           return new Response('Download temporarily unavailable', { status: 502 })
         }
       },

@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Mail, Lock, AlertCircle, CheckCircle2, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { FormError } from '@/components/ui/form-error'
+import { useFormValidation } from '@/hooks/useFormValidation'
 import { siteConfig } from '@/lib/config'
 import { useAuth } from '@/lib/auth-context'
 import { resendVerificationEmail } from '@/lib/auth'
@@ -34,6 +36,34 @@ function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const [resending, setResending] = useState(false)
 
+  // Inline validation rules
+  const validationFields = useMemo(() => ({
+    email: {
+      rules: [
+        { validate: (v: string) => v.length > 0, message: 'Email is required' },
+        { validate: (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), message: 'Please enter a valid email address' },
+      ],
+    },
+    password: {
+      rules: [
+        { validate: (v: string) => v.length > 0, message: 'Password is required' },
+        { validate: (v: string) => v.length >= 12, message: 'Password must be at least 12 characters' },
+        { validate: (v: string) => /[A-Z]/.test(v), message: 'Password must contain an uppercase letter' },
+        { validate: (v: string) => /[a-z]/.test(v), message: 'Password must contain a lowercase letter' },
+        { validate: (v: string) => /[0-9]/.test(v), message: 'Password must contain a number' },
+      ],
+    },
+    confirmPassword: {
+      rules: [
+        { validate: (v: string) => v.length > 0, message: 'Please confirm your password' },
+      ],
+    },
+  }), [])
+
+  const { handleBlur, handleChange, validateAll, getFieldError, clearErrors } = useFormValidation({
+    fields: validationFields,
+  })
+
   const handleResendEmail = async () => {
     setResending(true)
     try {
@@ -56,35 +86,20 @@ function RegisterPage() {
     return null
   }
 
-  const validateForm = () => {
-    if (!email || !password || !confirmPassword) {
-      setError('All fields are required')
-      return false
-    }
-    if (password.length < 12) {
-      setError('Password must be at least 12 characters')
-      return false
-    }
-    // Check for complexity requirements
-    const hasUppercase = /[A-Z]/.test(password)
-    const hasLowercase = /[a-z]/.test(password)
-    const hasNumber = /[0-9]/.test(password)
-    if (!hasUppercase || !hasLowercase || !hasNumber) {
-      setError('Password must contain uppercase, lowercase, and a number')
-      return false
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      return false
-    }
-    return true
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    clearErrors()
 
-    if (!validateForm()) return
+    // Validate all fields
+    const isValid = validateAll({ email, password, confirmPassword })
+    if (!isValid) return
+
+    // Check password match separately since it depends on another field
+    if (password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
 
     setLoading(true)
     try {
@@ -101,7 +116,7 @@ function RegisterPage() {
         // If no email verification needed, redirect to account
         navigate({ to: '/account' })
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -184,12 +199,17 @@ function RegisterPage() {
                     type="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      handleChange('email', e.target.value)
+                    }}
+                    onBlur={() => handleBlur('email', email)}
                     className="pl-10"
                     disabled={loading}
                     required
                   />
                 </div>
+                <FormError error={getFieldError('email')} />
               </div>
 
               <div className="space-y-2">
@@ -201,15 +221,22 @@ function RegisterPage() {
                     type="password"
                     placeholder="Create a secure password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      handleChange('password', e.target.value)
+                    }}
+                    onBlur={() => handleBlur('password', password)}
                     className="pl-10"
                     disabled={loading}
                     required
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  At least 12 characters with uppercase, lowercase, and a number
-                </p>
+                <FormError error={getFieldError('password')} />
+                {!getFieldError('password') && (
+                  <p className="text-xs text-muted-foreground">
+                    At least 12 characters with uppercase, lowercase, and a number
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -221,12 +248,17 @@ function RegisterPage() {
                     type="password"
                     placeholder="Confirm your password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      handleChange('confirmPassword', e.target.value)
+                    }}
+                    onBlur={() => handleBlur('confirmPassword', confirmPassword)}
                     className="pl-10"
                     disabled={loading}
                     required
                   />
                 </div>
+                <FormError error={getFieldError('confirmPassword')} />
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

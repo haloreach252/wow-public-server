@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContentCard } from '@/components/content'
+import { ContentCardSkeleton } from '@/components/ui/skeletons'
 import { getLatestContent, type ContentListResult } from '@/lib/content'
 import { AtlasLogo } from '@/components/icons/AtlasLogo'
 
@@ -186,7 +187,7 @@ function LatestNewsSection() {
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-48 rounded-lg bg-muted/50 animate-pulse" />
+              <ContentCardSkeleton key={i} />
             ))}
           </div>
         ) : hasContent ? (

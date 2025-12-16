@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { BookOpen, FileText, Scroll } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ContentCard } from '@/components/content'
+import { ContentCardSkeleton } from '@/components/ui/skeletons'
 import { listPublishedContent, type ContentListResult } from '@/lib/content'
 import { cn } from '@/lib/utils'
 import { siteConfig } from '@/lib/config'
@@ -97,10 +98,7 @@ function ContentListPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-64 rounded-lg bg-muted/50 animate-pulse"
-            />
+            <ContentCardSkeleton key={i} />
           ))}
         </div>
       ) : content.length === 0 ? (

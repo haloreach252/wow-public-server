@@ -12,6 +12,8 @@ import { ErrorBoundary, NotFound } from '@/components/error'
 import { ScrollToTop } from '@/components/ui/scroll-to-top'
 import { siteConfig } from '@/lib/config'
 import { AuthProvider } from '@/lib/auth-context'
+import { ThemeProvider } from '@/lib/theme-context'
+import { SessionExpiryWarning } from '@/components/auth/SessionExpiryWarning'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -89,9 +91,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SessionExpiryWarning />
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
         <TanStackDevtools
           config={{
             position: 'bottom-right',

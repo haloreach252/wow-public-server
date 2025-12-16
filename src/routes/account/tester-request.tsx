@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { FormSkeleton } from '@/components/ui/skeletons'
 import { getSession } from '@/lib/auth'
 import { submitTesterRequest, getMyTesterRequest } from '@/lib/tester-request'
 import { getMyRole } from '@/lib/user-role'
@@ -85,8 +86,18 @@ function TesterRequestContent() {
 
   if (checkingStatus) {
     return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl">
+          <Card>
+            <CardHeader>
+              <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-64 bg-muted rounded animate-pulse mt-2" />
+            </CardHeader>
+            <CardContent>
+              <FormSkeleton />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }

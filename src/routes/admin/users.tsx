@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Users, Shield, FlaskConical, Loader2, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Users, Shield, FlaskConical, Loader2, CheckCircle2, XCircle, RefreshCw, Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -23,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { DashboardSkeleton } from '@/components/ui/skeletons'
 import { getSession } from '@/lib/auth'
 import { listUsersWithRoles, updateUserRole, getMyRole } from '@/lib/user-role'
 import { getPendingRequests, reviewTesterRequest, getAllRequests } from '@/lib/tester-request'
@@ -70,6 +72,42 @@ function AdminUsersContent() {
   const [allRequests, setAllRequests] = useState<TesterRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
+
+  // Bulk action state
+  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+
+  // Filter users based on search and role
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = searchQuery === '' ||
+      user.supabaseUserId.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+    return matchesSearch && matchesRole
+  })
+
+  const toggleRequestSelection = (id: string) => {
+    setSelectedRequests(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleAllRequests = () => {
+    if (selectedRequests.size === pendingRequests.length) {
+      setSelectedRequests(new Set())
+    } else {
+      setSelectedRequests(new Set(pendingRequests.map(r => r.id)))
+    }
+  }
 
   const loadData = async () => {
     const session = await getSession()
@@ -195,10 +233,93 @@ function AdminUsersContent() {
     setActionLoading(null)
   }
 
+  const handleBulkApprove = async (envs: string[]) => {
+    if (selectedRequests.size === 0) return
+    setBulkLoading(true)
+
+    const session = await getSession()
+    if (!session?.access_token) {
+      toast.error('Not authenticated')
+      setBulkLoading(false)
+      return
+    }
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const requestId of selectedRequests) {
+      const result = await reviewTesterRequest({
+        data: {
+          adminAccessToken: session.access_token,
+          requestId,
+          approved: true,
+          allowedEnvs: envs,
+        },
+      })
+      if (result.success) {
+        successCount++
+      } else {
+        failCount++
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Approved ${successCount} request(s)`)
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to approve ${failCount} request(s)`)
+    }
+
+    setSelectedRequests(new Set())
+    await loadData()
+    setBulkLoading(false)
+  }
+
+  const handleBulkDeny = async () => {
+    if (selectedRequests.size === 0) return
+    setBulkLoading(true)
+
+    const session = await getSession()
+    if (!session?.access_token) {
+      toast.error('Not authenticated')
+      setBulkLoading(false)
+      return
+    }
+
+    let successCount = 0
+    let failCount = 0
+
+    for (const requestId of selectedRequests) {
+      const result = await reviewTesterRequest({
+        data: {
+          adminAccessToken: session.access_token,
+          requestId,
+          approved: false,
+        },
+      })
+      if (result.success) {
+        successCount++
+      } else {
+        failCount++
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Denied ${successCount} request(s)`)
+    }
+    if (failCount > 0) {
+      toast.error(`Failed to deny ${failCount} request(s)`)
+    }
+
+    setSelectedRequests(new Set())
+    await loadData()
+    setBulkLoading(false)
+  }
+
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="container mx-auto px-4 py-8">
+        <DashboardSkeleton />
       </div>
     )
   }
@@ -280,27 +401,54 @@ function AdminUsersContent() {
                   No pending requests
                 </p>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Reason</TableHead>
-                      <TableHead>Submitted</TableHead>
-                      <TableHead>Environments</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingRequests.map((request) => (
-                      <RequestRow
-                        key={request.id}
-                        request={request}
-                        onReview={handleReviewRequest}
-                        isLoading={actionLoading === request.id}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
+                <>
+                  {/* Bulk Action Bar */}
+                  {selectedRequests.size > 0 && (
+                    <div className="mb-4 p-3 bg-muted/50 rounded-lg border flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="text-sm font-medium">
+                        {selectedRequests.size} request{selectedRequests.size > 1 ? 's' : ''} selected
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <BulkEnvSelector
+                          onApprove={handleBulkApprove}
+                          onDeny={handleBulkDeny}
+                          isLoading={bulkLoading}
+                          disabled={selectedRequests.size === 0}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-10">
+                          <Checkbox
+                            checked={selectedRequests.size === pendingRequests.length && pendingRequests.length > 0}
+                            onCheckedChange={toggleAllRequests}
+                            aria-label="Select all requests"
+                          />
+                        </TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Environments</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingRequests.map((request) => (
+                        <RequestRow
+                          key={request.id}
+                          request={request}
+                          onReview={handleReviewRequest}
+                          isLoading={actionLoading === request.id}
+                          isSelected={selectedRequests.has(request.id)}
+                          onToggleSelect={() => toggleRequestSelection(request.id)}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </CardContent>
           </Card>
@@ -309,15 +457,44 @@ function AdminUsersContent() {
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <CardTitle>User Roles</CardTitle>
-              <CardDescription>
-                View and manage user roles and environment access
-              </CardDescription>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>User Roles</CardTitle>
+                  <CardDescription>
+                    View and manage user roles and environment access
+                  </CardDescription>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by user ID..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-8 w-full sm:w-48"
+                    />
+                  </div>
+                  <Select
+                    value={roleFilter}
+                    onValueChange={(value) => setRoleFilter(value as Role | 'all')}
+                  >
+                    <SelectTrigger className="w-full sm:w-32">
+                      <SelectValue placeholder="Filter role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="tester">Tester</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              {users.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
-                  No users found
+                  {users.length === 0 ? 'No users found' : 'No users match your search'}
                 </p>
               ) : (
                 <Table>
@@ -330,7 +507,7 @@ function AdminUsersContent() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map((user) => (
+                    {filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-mono text-xs">
                           {user.supabaseUserId.slice(0, 8)}...
@@ -441,15 +618,26 @@ function RequestRow({
   request,
   onReview,
   isLoading,
+  isSelected,
+  onToggleSelect,
 }: {
   request: TesterRequest
   onReview: (id: string, approved: boolean, envs?: string[]) => void
   isLoading: boolean
+  isSelected: boolean
+  onToggleSelect: () => void
 }) {
   const [selectedEnvs, setSelectedEnvs] = useState<string[]>(['dev'])
 
   return (
-    <TableRow>
+    <TableRow className={isSelected ? 'bg-muted/50' : undefined}>
+      <TableCell>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onToggleSelect}
+          aria-label={`Select request from ${request.email}`}
+        />
+      </TableCell>
       <TableCell>{request.email}</TableCell>
       <TableCell className="max-w-xs">
         {request.reason ? (
@@ -541,6 +729,71 @@ function EnvSelector({
           <span className="text-sm">{env}</span>
         </Label>
       ))}
+    </div>
+  )
+}
+
+function BulkEnvSelector({
+  onApprove,
+  onDeny,
+  isLoading,
+  disabled,
+}: {
+  onApprove: (envs: string[]) => void
+  onDeny: () => void
+  isLoading: boolean
+  disabled: boolean
+}) {
+  const [bulkEnvs, setBulkEnvs] = useState<string[]>(['dev'])
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">Envs:</span>
+        {AVAILABLE_ENVS.map((env) => (
+          <Label key={env} className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox
+              checked={bulkEnvs.includes(env)}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setBulkEnvs([...bulkEnvs, env])
+                } else {
+                  setBulkEnvs(bulkEnvs.filter((e) => e !== env))
+                }
+              }}
+              disabled={isLoading || disabled}
+            />
+            <span className="text-sm">{env}</span>
+          </Label>
+        ))}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDeny}
+          disabled={isLoading || disabled}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+          ) : (
+            <XCircle className="h-4 w-4 mr-1" />
+          )}
+          Deny All
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => onApprove(bulkEnvs)}
+          disabled={isLoading || disabled || bulkEnvs.length === 0}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 mr-1" />
+          )}
+          Approve All
+        </Button>
+      </div>
     </div>
   )
 }

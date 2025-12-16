@@ -50,7 +50,9 @@ export const AnyNull = runtime.objectEnumValues.instances.AnyNull
 
 export const ModelName = {
   GameAccount: 'GameAccount',
-  Content: 'Content'
+  Content: 'Content',
+  UserRole: 'UserRole',
+  TesterRequest: 'TesterRequest'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -98,6 +100,32 @@ export const ContentScalarFieldEnum = {
 } as const
 
 export type ContentScalarFieldEnum = (typeof ContentScalarFieldEnum)[keyof typeof ContentScalarFieldEnum]
+
+
+export const UserRoleScalarFieldEnum = {
+  id: 'id',
+  supabaseUserId: 'supabaseUserId',
+  role: 'role',
+  allowedEnvs: 'allowedEnvs',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type UserRoleScalarFieldEnum = (typeof UserRoleScalarFieldEnum)[keyof typeof UserRoleScalarFieldEnum]
+
+
+export const TesterRequestScalarFieldEnum = {
+  id: 'id',
+  supabaseUserId: 'supabaseUserId',
+  email: 'email',
+  reason: 'reason',
+  status: 'status',
+  reviewedBy: 'reviewedBy',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type TesterRequestScalarFieldEnum = (typeof TesterRequestScalarFieldEnum)[keyof typeof TesterRequestScalarFieldEnum]
 
 
 export const SortOrder = {

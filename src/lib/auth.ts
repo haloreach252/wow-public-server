@@ -8,6 +8,8 @@ export interface AuthUser {
   email: string
   emailVerified: boolean
   createdAt: string
+  role?: 'user' | 'tester' | 'admin'
+  allowedEnvs?: string[]
 }
 
 export interface AuthResult {

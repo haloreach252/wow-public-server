@@ -50,3 +50,43 @@ model Content {
   @@index([published, publishedAt])
   @@map("content")
 }
+
+// User roles for patcher access control
+enum Role {
+  user    // Default - can only access live environment
+  tester  // Can access assigned environments
+  admin   // Can access all environments and manage roles
+}
+
+enum RequestStatus {
+  pending
+  approved
+  denied
+}
+
+// Tracks user roles and environment access
+model UserRole {
+  id             String   @id @default(cuid())
+  supabaseUserId String   @unique @map("supabase_user_id")
+  role           Role     @default(user)
+  allowedEnvs    String[] @default([]) // For testers: ["dev", "test"]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("user_roles")
+}
+
+// Tester access requests
+model TesterRequest {
+  id             String        @id @default(cuid())
+  supabaseUserId String        @unique @map("supabase_user_id")
+  email          String
+  reason         String?       @db.Text
+  status         RequestStatus @default(pending)
+  reviewedBy     String?       @map("reviewed_by") // Admin's supabase user ID
+  reviewedAt     DateTime?     @map("reviewed_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  @@index([status, createdAt])
+  @@map("tester_requests")
+}

@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { User, Settings, Gamepad2, Shield, Mail, CheckCircle2, AlertCircle, Loader2, Clock } from 'lucide-react'
+import { User, Settings, Gamepad2, Shield, Mail, CheckCircle2, AlertCircle, Loader2, Clock, FlaskConical, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/lib/auth-context'
 import { getGameAccount, type GameAccountInfo } from '@/lib/game-account'
 import { getSession } from '@/lib/auth'
+import { getMyRole, type Role } from '@/lib/user-role'
 import { supabase } from '@/lib/supabase'
 
 function formatTimeRemaining(expiresAt: number): string {
@@ -46,6 +47,7 @@ function AccountDashboardContent() {
   const [loadingGameAccount, setLoadingGameAccount] = useState(true)
   const [mfaEnabled, setMfaEnabled] = useState(false)
   const [loadingMfa, setLoadingMfa] = useState(true)
+  const [userRole, setUserRole] = useState<Role | null>(null)
 
   useEffect(() => {
     async function fetchGameAccount() {
@@ -76,8 +78,23 @@ function AccountDashboardContent() {
       }
     }
 
+    async function fetchUserRole() {
+      try {
+        const session = await getSession()
+        if (session?.access_token) {
+          const result = await getMyRole({ data: { accessToken: session.access_token } })
+          if (result.success && result.role) {
+            setUserRole(result.role)
+          }
+        }
+      } catch {
+        // Silently fail - role-based UI won't show
+      }
+    }
+
     fetchGameAccount()
     fetchMfaStatus()
+    fetchUserRole()
   }, [])
 
   const hasGameAccount = !!gameAccount
@@ -246,6 +263,40 @@ function AccountDashboardContent() {
             </CardHeader>
           </Link>
         </Card>
+
+        {/* Tester Request - only show for regular users */}
+        {userRole === 'user' && (
+          <Card className="hover:border-primary/50 transition-colors">
+            <Link to="/account/tester-request" className="block">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <FlaskConical className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">Request Tester Access</CardTitle>
+                </div>
+                <CardDescription>
+                  Apply for tester access to help test new features
+                </CardDescription>
+              </CardHeader>
+            </Link>
+          </Card>
+        )}
+
+        {/* Admin User Management - only show for admins */}
+        {userRole === 'admin' && (
+          <Card className="hover:border-primary/50 transition-colors">
+            <Link to="/admin/users" className="block">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-base">User Management</CardTitle>
+                </div>
+                <CardDescription>
+                  Manage user roles and review tester requests
+                </CardDescription>
+              </CardHeader>
+            </Link>
+          </Card>
+        )}
       </div>
     </div>
   )

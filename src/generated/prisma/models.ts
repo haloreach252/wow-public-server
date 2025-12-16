@@ -10,4 +10,6 @@
  */
 export type * from './models/GameAccount.ts'
 export type * from './models/Content.ts'
+export type * from './models/UserRole.ts'
+export type * from './models/TesterRequest.ts'
 export type * from './commonInputTypes.ts'

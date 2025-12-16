@@ -27,3 +27,13 @@ export type GameAccount = Prisma.GameAccountModel
  * 
  */
 export type Content = Prisma.ContentModel
+/**
+ * Model UserRole
+ * 
+ */
+export type UserRole = Prisma.UserRoleModel
+/**
+ * Model TesterRequest
+ * 
+ */
+export type TesterRequest = Prisma.TesterRequestModel

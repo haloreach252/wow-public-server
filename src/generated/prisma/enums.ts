@@ -16,3 +16,21 @@ export const ContentType = {
 } as const
 
 export type ContentType = (typeof ContentType)[keyof typeof ContentType]
+
+
+export const Role = {
+  user: 'user',
+  tester: 'tester',
+  admin: 'admin'
+} as const
+
+export type Role = (typeof Role)[keyof typeof Role]
+
+
+export const RequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  denied: 'denied'
+} as const
+
+export type RequestStatus = (typeof RequestStatus)[keyof typeof RequestStatus]

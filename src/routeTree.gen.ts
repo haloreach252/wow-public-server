@@ -20,6 +20,8 @@ import { Route as AccountIndexRouteImport } from './routes/account/index'
 import { Route as TestIdRouteImport } from './routes/test/$id'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AccountTesterRequestRouteImport } from './routes/account/tester-request'
 import { Route as AccountSettingsRouteImport } from './routes/account/settings'
 import { Route as AccountGameRouteImport } from './routes/account/game'
 import { Route as ContentTypeSlugRouteImport } from './routes/content/$type.$slug'
@@ -27,6 +29,9 @@ import { Route as ApiDownloadPatcherInfoRouteImport } from './routes/api/downloa
 import { Route as ApiDownloadPatcherRouteImport } from './routes/api/download/patcher'
 import { Route as ApiPublicContentIndexRouteImport } from './routes/api/public/content/index'
 import { Route as ApiPublicContentIdRouteImport } from './routes/api/public/content/$id'
+import { Route as ApiPatcherAuthRefreshRouteImport } from './routes/api/patcher/auth/refresh'
+import { Route as ApiPatcherAuthMeRouteImport } from './routes/api/patcher/auth/me'
+import { Route as ApiPatcherAuthLoginRouteImport } from './routes/api/patcher/auth/login'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -83,6 +88,16 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountTesterRequestRoute = AccountTesterRequestRouteImport.update({
+  id: '/account/tester-request',
+  path: '/account/tester-request',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountSettingsRoute = AccountSettingsRouteImport.update({
   id: '/account/settings',
   path: '/account/settings',
@@ -118,6 +133,21 @@ const ApiPublicContentIdRoute = ApiPublicContentIdRouteImport.update({
   path: '/api/public/content/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPatcherAuthRefreshRoute = ApiPatcherAuthRefreshRouteImport.update({
+  id: '/api/patcher/auth/refresh',
+  path: '/api/patcher/auth/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPatcherAuthMeRoute = ApiPatcherAuthMeRouteImport.update({
+  id: '/api/patcher/auth/me',
+  path: '/api/patcher/auth/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPatcherAuthLoginRoute = ApiPatcherAuthLoginRouteImport.update({
+  id: '/api/patcher/auth/login',
+  path: '/api/patcher/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -128,6 +158,8 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/account/game': typeof AccountGameRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/account/tester-request': typeof AccountTesterRequestRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/test/$id': typeof TestIdRoute
@@ -136,6 +168,9 @@ export interface FileRoutesByFullPath {
   '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/api/download/patcher-info': typeof ApiDownloadPatcherInfoRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/patcher/auth/login': typeof ApiPatcherAuthLoginRoute
+  '/api/patcher/auth/me': typeof ApiPatcherAuthMeRoute
+  '/api/patcher/auth/refresh': typeof ApiPatcherAuthRefreshRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content': typeof ApiPublicContentIndexRoute
 }
@@ -148,6 +183,8 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/account/game': typeof AccountGameRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/account/tester-request': typeof AccountTesterRequestRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/test/$id': typeof TestIdRoute
@@ -156,6 +193,9 @@ export interface FileRoutesByTo {
   '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/api/download/patcher-info': typeof ApiDownloadPatcherInfoRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/patcher/auth/login': typeof ApiPatcherAuthLoginRoute
+  '/api/patcher/auth/me': typeof ApiPatcherAuthMeRoute
+  '/api/patcher/auth/refresh': typeof ApiPatcherAuthRefreshRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content': typeof ApiPublicContentIndexRoute
 }
@@ -169,6 +209,8 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/account/game': typeof AccountGameRoute
   '/account/settings': typeof AccountSettingsRoute
+  '/account/tester-request': typeof AccountTesterRequestRoute
+  '/admin/users': typeof AdminUsersRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/test/$id': typeof TestIdRoute
@@ -177,6 +219,9 @@ export interface FileRoutesById {
   '/api/download/patcher': typeof ApiDownloadPatcherRoute
   '/api/download/patcher-info': typeof ApiDownloadPatcherInfoRoute
   '/content/$type/$slug': typeof ContentTypeSlugRoute
+  '/api/patcher/auth/login': typeof ApiPatcherAuthLoginRoute
+  '/api/patcher/auth/me': typeof ApiPatcherAuthMeRoute
+  '/api/patcher/auth/refresh': typeof ApiPatcherAuthRefreshRoute
   '/api/public/content/$id': typeof ApiPublicContentIdRoute
   '/api/public/content/': typeof ApiPublicContentIndexRoute
 }
@@ -191,6 +236,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/account/game'
     | '/account/settings'
+    | '/account/tester-request'
+    | '/admin/users'
     | '/auth/callback'
     | '/auth/reset-password'
     | '/test/$id'
@@ -199,6 +246,9 @@ export interface FileRouteTypes {
     | '/api/download/patcher'
     | '/api/download/patcher-info'
     | '/content/$type/$slug'
+    | '/api/patcher/auth/login'
+    | '/api/patcher/auth/me'
+    | '/api/patcher/auth/refresh'
     | '/api/public/content/$id'
     | '/api/public/content'
   fileRoutesByTo: FileRoutesByTo
@@ -211,6 +261,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/account/game'
     | '/account/settings'
+    | '/account/tester-request'
+    | '/admin/users'
     | '/auth/callback'
     | '/auth/reset-password'
     | '/test/$id'
@@ -219,6 +271,9 @@ export interface FileRouteTypes {
     | '/api/download/patcher'
     | '/api/download/patcher-info'
     | '/content/$type/$slug'
+    | '/api/patcher/auth/login'
+    | '/api/patcher/auth/me'
+    | '/api/patcher/auth/refresh'
     | '/api/public/content/$id'
     | '/api/public/content'
   id:
@@ -231,6 +286,8 @@ export interface FileRouteTypes {
     | '/register'
     | '/account/game'
     | '/account/settings'
+    | '/account/tester-request'
+    | '/admin/users'
     | '/auth/callback'
     | '/auth/reset-password'
     | '/test/$id'
@@ -239,6 +296,9 @@ export interface FileRouteTypes {
     | '/api/download/patcher'
     | '/api/download/patcher-info'
     | '/content/$type/$slug'
+    | '/api/patcher/auth/login'
+    | '/api/patcher/auth/me'
+    | '/api/patcher/auth/refresh'
     | '/api/public/content/$id'
     | '/api/public/content/'
   fileRoutesById: FileRoutesById
@@ -252,6 +312,8 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   AccountGameRoute: typeof AccountGameRoute
   AccountSettingsRoute: typeof AccountSettingsRoute
+  AccountTesterRequestRoute: typeof AccountTesterRequestRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   TestIdRoute: typeof TestIdRoute
@@ -260,6 +322,9 @@ export interface RootRouteChildren {
   ApiDownloadPatcherRoute: typeof ApiDownloadPatcherRoute
   ApiDownloadPatcherInfoRoute: typeof ApiDownloadPatcherInfoRoute
   ContentTypeSlugRoute: typeof ContentTypeSlugRoute
+  ApiPatcherAuthLoginRoute: typeof ApiPatcherAuthLoginRoute
+  ApiPatcherAuthMeRoute: typeof ApiPatcherAuthMeRoute
+  ApiPatcherAuthRefreshRoute: typeof ApiPatcherAuthRefreshRoute
   ApiPublicContentIdRoute: typeof ApiPublicContentIdRoute
   ApiPublicContentIndexRoute: typeof ApiPublicContentIndexRoute
 }
@@ -343,6 +408,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account/tester-request': {
+      id: '/account/tester-request'
+      path: '/account/tester-request'
+      fullPath: '/account/tester-request'
+      preLoaderRoute: typeof AccountTesterRequestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/account/settings': {
       id: '/account/settings'
       path: '/account/settings'
@@ -392,6 +471,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicContentIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/patcher/auth/refresh': {
+      id: '/api/patcher/auth/refresh'
+      path: '/api/patcher/auth/refresh'
+      fullPath: '/api/patcher/auth/refresh'
+      preLoaderRoute: typeof ApiPatcherAuthRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/patcher/auth/me': {
+      id: '/api/patcher/auth/me'
+      path: '/api/patcher/auth/me'
+      fullPath: '/api/patcher/auth/me'
+      preLoaderRoute: typeof ApiPatcherAuthMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/patcher/auth/login': {
+      id: '/api/patcher/auth/login'
+      path: '/api/patcher/auth/login'
+      fullPath: '/api/patcher/auth/login'
+      preLoaderRoute: typeof ApiPatcherAuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -404,6 +504,8 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   AccountGameRoute: AccountGameRoute,
   AccountSettingsRoute: AccountSettingsRoute,
+  AccountTesterRequestRoute: AccountTesterRequestRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   TestIdRoute: TestIdRoute,
@@ -412,6 +514,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiDownloadPatcherRoute: ApiDownloadPatcherRoute,
   ApiDownloadPatcherInfoRoute: ApiDownloadPatcherInfoRoute,
   ContentTypeSlugRoute: ContentTypeSlugRoute,
+  ApiPatcherAuthLoginRoute: ApiPatcherAuthLoginRoute,
+  ApiPatcherAuthMeRoute: ApiPatcherAuthMeRoute,
+  ApiPatcherAuthRefreshRoute: ApiPatcherAuthRefreshRoute,
   ApiPublicContentIdRoute: ApiPublicContentIdRoute,
   ApiPublicContentIndexRoute: ApiPublicContentIndexRoute,
 }

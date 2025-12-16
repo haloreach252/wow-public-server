@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Users, Shield, FlaskConical, Loader2, CheckCircle2, XCircle, RefreshCw, Search } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,15 @@ import { listUsersWithRoles, updateUserRole, getMyRole } from '@/lib/user-role'
 import { getPendingRequests, reviewTesterRequest, getAllRequests } from '@/lib/tester-request'
 import { toast } from 'sonner'
 import type { Role } from '@/lib/user-role'
+
+// Query keys for cache invalidation - exported for use in other components
+export const adminQueryKeys = {
+  all: ['admin'] as const,
+  users: () => [...adminQueryKeys.all, 'users'] as const,
+  pendingRequests: () => [...adminQueryKeys.all, 'pending-requests'] as const,
+  allRequests: () => [...adminQueryKeys.all, 'all-requests'] as const,
+  myRole: () => [...adminQueryKeys.all, 'my-role'] as const,
+}
 
 export const Route = createFileRoute('/admin/users')({
   component: AdminUsersPage,
@@ -66,12 +76,7 @@ interface TesterRequest {
 const AVAILABLE_ENVS = ['dev', 'test', 'live']
 
 function AdminUsersContent() {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
-  const [users, setUsers] = useState<UserRole[]>([])
-  const [pendingRequests, setPendingRequests] = useState<TesterRequest[]>([])
-  const [allRequests, setAllRequests] = useState<TesterRequest[]>([])
-  const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState('')
@@ -79,7 +84,165 @@ function AdminUsersContent() {
 
   // Bulk action state
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set())
-  const [bulkLoading, setBulkLoading] = useState(false)
+
+  // Check if current user is admin
+  const { data: roleData, isLoading: roleLoading } = useQuery({
+    queryKey: adminQueryKeys.myRole(),
+    queryFn: async () => {
+      const session = await getSession()
+      if (!session?.access_token) {
+        return { isAdmin: false }
+      }
+      const result = await getMyRole({ data: { accessToken: session.access_token } })
+      return { isAdmin: result.success && result.role === 'admin' }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  const isAdmin = roleData?.isAdmin ?? false
+
+  // Fetch users with roles
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: adminQueryKeys.users(),
+    queryFn: async () => {
+      const session = await getSession()
+      if (!session?.access_token) return { users: [] }
+      const result = await listUsersWithRoles({ data: { adminAccessToken: session.access_token } })
+      return { users: (result.success ? result.users : []) as UserRole[] }
+    },
+    enabled: isAdmin,
+    staleTime: 30 * 1000, // 30 seconds
+    refetchInterval: 60 * 1000, // Refetch every minute
+  })
+
+  // Fetch pending requests
+  const { data: pendingData, isLoading: pendingLoading } = useQuery({
+    queryKey: adminQueryKeys.pendingRequests(),
+    queryFn: async () => {
+      const session = await getSession()
+      if (!session?.access_token) return { requests: [] }
+      const result = await getPendingRequests({ data: { adminAccessToken: session.access_token } })
+      return { requests: (result.success ? result.requests : []) as TesterRequest[] }
+    },
+    enabled: isAdmin,
+    staleTime: 10 * 1000, // 10 seconds - shorter for pending requests
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+  })
+
+  // Fetch all requests (history)
+  const { data: allRequestsData, isLoading: historyLoading } = useQuery({
+    queryKey: adminQueryKeys.allRequests(),
+    queryFn: async () => {
+      const session = await getSession()
+      if (!session?.access_token) return { requests: [] }
+      const result = await getAllRequests({ data: { adminAccessToken: session.access_token } })
+      return { requests: (result.success ? result.requests : []) as TesterRequest[] }
+    },
+    enabled: isAdmin,
+    staleTime: 30 * 1000, // 30 seconds
+  })
+
+  const users = usersData?.users ?? []
+  const pendingRequests = pendingData?.requests ?? []
+  const allRequests = allRequestsData?.requests ?? []
+
+  // Mutation for updating user role
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ userId, newRole, allowedEnvs }: { userId: string; newRole: Role; allowedEnvs: string[] }) => {
+      const session = await getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+      const result = await updateUserRole({
+        data: {
+          adminAccessToken: session.access_token,
+          targetUserId: userId,
+          role: newRole,
+          allowedEnvs,
+        },
+      })
+      if (!result.success) throw new Error(result.error || 'Failed to update role')
+      return result
+    },
+    onSuccess: () => {
+      toast.success('Role updated successfully')
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  // Mutation for reviewing tester request
+  const reviewRequestMutation = useMutation({
+    mutationFn: async ({ requestId, approved, allowedEnvs }: { requestId: string; approved: boolean; allowedEnvs?: string[] }) => {
+      const session = await getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+      const result = await reviewTesterRequest({
+        data: {
+          adminAccessToken: session.access_token,
+          requestId,
+          approved,
+          allowedEnvs,
+        },
+      })
+      if (!result.success) throw new Error(result.error || 'Failed to review request')
+      return result
+    },
+    onSuccess: (_, variables) => {
+      toast.success(variables.approved ? 'Request approved' : 'Request denied')
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingRequests() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.allRequests() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  // Bulk mutation for approving/denying multiple requests
+  const bulkReviewMutation = useMutation({
+    mutationFn: async ({ requestIds, approved, allowedEnvs }: { requestIds: string[]; approved: boolean; allowedEnvs?: string[] }) => {
+      const session = await getSession()
+      if (!session?.access_token) throw new Error('Not authenticated')
+
+      let successCount = 0
+      let failCount = 0
+
+      for (const requestId of requestIds) {
+        const result = await reviewTesterRequest({
+          data: {
+            adminAccessToken: session.access_token,
+            requestId,
+            approved,
+            allowedEnvs,
+          },
+        })
+        if (result.success) {
+          successCount++
+        } else {
+          failCount++
+        }
+      }
+
+      return { successCount, failCount, approved }
+    },
+    onSuccess: ({ successCount, failCount, approved }) => {
+      if (successCount > 0) {
+        toast.success(`${approved ? 'Approved' : 'Denied'} ${successCount} request(s)`)
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to ${approved ? 'approve' : 'deny'} ${failCount} request(s)`)
+      }
+      setSelectedRequests(new Set())
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingRequests() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.allRequests() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.users() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
 
   // Filter users based on search and role
   const filteredUsers = users.filter(user => {
@@ -109,212 +272,49 @@ function AdminUsersContent() {
     }
   }
 
-  const loadData = async () => {
-    const session = await getSession()
-    if (!session?.access_token) {
-      setIsAdmin(false)
-      setLoading(false)
-      return
-    }
-
-    // Check if current user is admin
-    const roleResult = await getMyRole({ data: { accessToken: session.access_token } })
-    if (!roleResult.success || roleResult.role !== 'admin') {
-      setIsAdmin(false)
-      setLoading(false)
-      return
-    }
-
-    setIsAdmin(true)
-
-    // Load users
-    const usersResult = await listUsersWithRoles({ data: { adminAccessToken: session.access_token } })
-    if (usersResult.success && usersResult.users) {
-      setUsers(usersResult.users as UserRole[])
-    }
-
-    // Load pending requests
-    const pendingResult = await getPendingRequests({ data: { adminAccessToken: session.access_token } })
-    if (pendingResult.success && pendingResult.requests) {
-      setPendingRequests(pendingResult.requests as TesterRequest[])
-    }
-
-    // Load all requests
-    const allResult = await getAllRequests({ data: { adminAccessToken: session.access_token } })
-    if (allResult.success && allResult.requests) {
-      setAllRequests(allResult.requests as TesterRequest[])
-    }
-
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const handleRoleChange = async (userId: string, newRole: Role) => {
-    setActionLoading(userId)
-    const session = await getSession()
-    if (!session?.access_token) {
-      toast.error('Not authenticated')
-      setActionLoading(null)
-      return
-    }
-
-    const result = await updateUserRole({
-      data: {
-        adminAccessToken: session.access_token,
-        targetUserId: userId,
-        role: newRole,
-        allowedEnvs: newRole === 'tester' ? ['dev'] : [],
-      },
+  const handleRoleChange = (userId: string, newRole: Role) => {
+    updateRoleMutation.mutate({
+      userId,
+      newRole,
+      allowedEnvs: newRole === 'tester' ? ['dev'] : [],
     })
-
-    if (result.success) {
-      toast.success('Role updated successfully')
-      await loadData()
-    } else {
-      toast.error(result.error || 'Failed to update role')
-    }
-    setActionLoading(null)
   }
 
-  const handleEnvsChange = async (userId: string, currentRole: Role, envs: string[]) => {
-    setActionLoading(userId)
-    const session = await getSession()
-    if (!session?.access_token) {
-      toast.error('Not authenticated')
-      setActionLoading(null)
-      return
-    }
-
-    const result = await updateUserRole({
-      data: {
-        adminAccessToken: session.access_token,
-        targetUserId: userId,
-        role: currentRole,
-        allowedEnvs: envs,
-      },
+  const handleEnvsChange = (userId: string, currentRole: Role, envs: string[]) => {
+    updateRoleMutation.mutate({
+      userId,
+      newRole: currentRole,
+      allowedEnvs: envs,
     })
-
-    if (result.success) {
-      toast.success('Environments updated successfully')
-      await loadData()
-    } else {
-      toast.error(result.error || 'Failed to update environments')
-    }
-    setActionLoading(null)
   }
 
-  const handleReviewRequest = async (requestId: string, approved: boolean, envs?: string[]) => {
-    setActionLoading(requestId)
-    const session = await getSession()
-    if (!session?.access_token) {
-      toast.error('Not authenticated')
-      setActionLoading(null)
-      return
-    }
-
-    const result = await reviewTesterRequest({
-      data: {
-        adminAccessToken: session.access_token,
-        requestId,
-        approved,
-        allowedEnvs: envs,
-      },
-    })
-
-    if (result.success) {
-      toast.success(approved ? 'Request approved' : 'Request denied')
-      await loadData()
-    } else {
-      toast.error(result.error || 'Failed to review request')
-    }
-    setActionLoading(null)
+  const handleReviewRequest = (requestId: string, approved: boolean, envs?: string[]) => {
+    reviewRequestMutation.mutate({ requestId, approved, allowedEnvs: envs })
   }
 
-  const handleBulkApprove = async (envs: string[]) => {
+  const handleBulkApprove = (envs: string[]) => {
     if (selectedRequests.size === 0) return
-    setBulkLoading(true)
-
-    const session = await getSession()
-    if (!session?.access_token) {
-      toast.error('Not authenticated')
-      setBulkLoading(false)
-      return
-    }
-
-    let successCount = 0
-    let failCount = 0
-
-    for (const requestId of selectedRequests) {
-      const result = await reviewTesterRequest({
-        data: {
-          adminAccessToken: session.access_token,
-          requestId,
-          approved: true,
-          allowedEnvs: envs,
-        },
-      })
-      if (result.success) {
-        successCount++
-      } else {
-        failCount++
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`Approved ${successCount} request(s)`)
-    }
-    if (failCount > 0) {
-      toast.error(`Failed to approve ${failCount} request(s)`)
-    }
-
-    setSelectedRequests(new Set())
-    await loadData()
-    setBulkLoading(false)
+    bulkReviewMutation.mutate({
+      requestIds: Array.from(selectedRequests),
+      approved: true,
+      allowedEnvs: envs,
+    })
   }
 
-  const handleBulkDeny = async () => {
+  const handleBulkDeny = () => {
     if (selectedRequests.size === 0) return
-    setBulkLoading(true)
-
-    const session = await getSession()
-    if (!session?.access_token) {
-      toast.error('Not authenticated')
-      setBulkLoading(false)
-      return
-    }
-
-    let successCount = 0
-    let failCount = 0
-
-    for (const requestId of selectedRequests) {
-      const result = await reviewTesterRequest({
-        data: {
-          adminAccessToken: session.access_token,
-          requestId,
-          approved: false,
-        },
-      })
-      if (result.success) {
-        successCount++
-      } else {
-        failCount++
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`Denied ${successCount} request(s)`)
-    }
-    if (failCount > 0) {
-      toast.error(`Failed to deny ${failCount} request(s)`)
-    }
-
-    setSelectedRequests(new Set())
-    await loadData()
-    setBulkLoading(false)
+    bulkReviewMutation.mutate({
+      requestIds: Array.from(selectedRequests),
+      approved: false,
+    })
   }
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: adminQueryKeys.all })
+  }
+
+  // Loading state
+  const loading = roleLoading || (isAdmin && (usersLoading || pendingLoading || historyLoading))
 
   if (loading) {
     return (
@@ -342,6 +342,10 @@ function AdminUsersContent() {
     )
   }
 
+  // Check if any mutation is in progress
+  const isActionLoading = updateRoleMutation.isPending || reviewRequestMutation.isPending
+  const actionLoadingId = updateRoleMutation.variables?.userId || reviewRequestMutation.variables?.requestId
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex justify-between items-start">
@@ -361,7 +365,7 @@ function AdminUsersContent() {
             Manage user roles and tester requests
           </p>
         </div>
-        <Button onClick={loadData} variant="outline" size="sm">
+        <Button onClick={handleRefresh} variant="outline" size="sm">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -412,7 +416,7 @@ function AdminUsersContent() {
                         <BulkEnvSelector
                           onApprove={handleBulkApprove}
                           onDeny={handleBulkDeny}
-                          isLoading={bulkLoading}
+                          isLoading={bulkReviewMutation.isPending}
                           disabled={selectedRequests.size === 0}
                         />
                       </div>
@@ -441,7 +445,7 @@ function AdminUsersContent() {
                           key={request.id}
                           request={request}
                           onReview={handleReviewRequest}
-                          isLoading={actionLoading === request.id}
+                          isLoading={isActionLoading && actionLoadingId === request.id}
                           isSelected={selectedRequests.has(request.id)}
                           onToggleSelect={() => toggleRequestSelection(request.id)}
                         />
@@ -516,7 +520,7 @@ function AdminUsersContent() {
                           <Select
                             value={user.role}
                             onValueChange={(value) => handleRoleChange(user.supabaseUserId, value as Role)}
-                            disabled={actionLoading === user.supabaseUserId}
+                            disabled={isActionLoading && actionLoadingId === user.supabaseUserId}
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
@@ -535,7 +539,7 @@ function AdminUsersContent() {
                             <EnvSelector
                               selectedEnvs={user.allowedEnvs}
                               onChange={(envs) => handleEnvsChange(user.supabaseUserId, user.role, envs)}
-                              disabled={actionLoading === user.supabaseUserId}
+                              disabled={isActionLoading && actionLoadingId === user.supabaseUserId}
                             />
                           ) : (
                             <span className="text-muted-foreground">-</span>

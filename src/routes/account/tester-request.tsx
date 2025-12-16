@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, FlaskConical, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +11,14 @@ import { FormSkeleton } from '@/components/ui/skeletons'
 import { getSession } from '@/lib/auth'
 import { submitTesterRequest, getMyTesterRequest } from '@/lib/tester-request'
 import { getMyRole } from '@/lib/user-role'
+import { adminQueryKeys } from '@/routes/admin/users'
 import { toast } from 'sonner'
+
+// Query keys for tester request
+export const testerRequestQueryKeys = {
+  myRequest: () => ['tester-request', 'my-request'] as const,
+  myRole: () => ['tester-request', 'my-role'] as const,
+}
 
 export const Route = createFileRoute('/account/tester-request')({
   component: TesterRequestPage,
@@ -25,63 +33,77 @@ function TesterRequestPage() {
 }
 
 function TesterRequestContent() {
+  const queryClient = useQueryClient()
   const [reason, setReason] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [existingRequest, setExistingRequest] = useState<{
-    status: string
-    createdAt: string
-  } | null>(null)
-  const [currentRole, setCurrentRole] = useState<string | null>(null)
-  const [checkingStatus, setCheckingStatus] = useState(true)
 
-  useEffect(() => {
-    async function checkExisting() {
+  // Query for current role
+  const { data: roleData, isLoading: roleLoading } = useQuery({
+    queryKey: testerRequestQueryKeys.myRole(),
+    queryFn: async () => {
       const session = await getSession()
-      if (session?.access_token) {
-        // Check current role
-        const roleResult = await getMyRole({ data: { accessToken: session.access_token } })
-        if (roleResult.success && roleResult.role) {
-          setCurrentRole(roleResult.role)
-        }
+      if (!session?.access_token) return { role: null }
+      const result = await getMyRole({ data: { accessToken: session.access_token } })
+      return { role: result.success ? result.role : null }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
 
-        // Check for existing request
-        const result = await getMyTesterRequest({ data: { accessToken: session.access_token } })
-        if (result.success && result.request) {
-          setExistingRequest({
+  // Query for existing request
+  const { data: requestData, isLoading: requestLoading } = useQuery({
+    queryKey: testerRequestQueryKeys.myRequest(),
+    queryFn: async () => {
+      const session = await getSession()
+      if (!session?.access_token) return { request: null }
+      const result = await getMyTesterRequest({ data: { accessToken: session.access_token } })
+      if (result.success && result.request) {
+        return {
+          request: {
             status: result.request.status,
             createdAt: result.request.createdAt.toString(),
-          })
+          },
         }
       }
-      setCheckingStatus(false)
-    }
-    checkExisting()
-  }, [])
+      return { request: null }
+    },
+    staleTime: 30 * 1000, // 30 seconds
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
-    try {
+  // Mutation for submitting request
+  const submitMutation = useMutation({
+    mutationFn: async (reason: string) => {
       const session = await getSession()
-      if (!session?.access_token) {
-        toast.error('Please log in again')
-        return
-      }
-
+      if (!session?.access_token) throw new Error('Please log in again')
       const result = await submitTesterRequest({
         data: { accessToken: session.access_token, reason },
       })
+      if (!result.success) throw new Error(result.error || 'Failed to submit request')
+      return result
+    },
+    onSuccess: () => {
+      toast.success('Request submitted! An admin will review it soon.')
+      // Invalidate local queries
+      queryClient.invalidateQueries({ queryKey: testerRequestQueryKeys.myRequest() })
+      // Invalidate admin queries so they see the new request immediately
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.pendingRequests() })
+      queryClient.invalidateQueries({ queryKey: adminQueryKeys.allRequests() })
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
 
-      if (result.success) {
-        toast.success('Request submitted! An admin will review it soon.')
-        setExistingRequest({ status: 'pending', createdAt: new Date().toISOString() })
-      } else {
-        toast.error(result.error || 'Failed to submit request')
-      }
-    } finally {
-      setLoading(false)
-    }
+  const currentRole = roleData?.role ?? null
+  const existingRequest = requestData?.request ?? null
+  const checkingStatus = roleLoading || requestLoading
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    submitMutation.mutate(reason)
+  }
+
+  const handleNewRequest = () => {
+    // Clear the cached request to allow submitting a new one
+    queryClient.setQueryData(testerRequestQueryKeys.myRequest(), { request: null })
   }
 
   if (checkingStatus) {
@@ -179,7 +201,7 @@ function TesterRequestContent() {
                 <div className="space-y-4">
                   <p>Your request was denied. You may submit a new request if you'd like to try again.</p>
                   <Button
-                    onClick={() => setExistingRequest(null)}
+                    onClick={handleNewRequest}
                     variant="outline"
                   >
                     Submit New Request
@@ -209,12 +231,12 @@ function TesterRequestContent() {
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     rows={4}
-                    disabled={loading}
+                    disabled={submitMutation.isPending}
                   />
                 </div>
 
-                <Button type="submit" disabled={loading}>
-                  {loading ? (
+                <Button type="submit" disabled={submitMutation.isPending}>
+                  {submitMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Submitting...

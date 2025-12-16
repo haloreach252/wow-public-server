@@ -182,8 +182,17 @@ function ChangePasswordSection({ email }: { email: string }) {
       return
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (newPassword.length < 12) {
+      setError('Password must be at least 12 characters')
+      return
+    }
+
+    // Check for complexity requirements
+    const hasUppercase = /[A-Z]/.test(newPassword)
+    const hasLowercase = /[a-z]/.test(newPassword)
+    const hasNumber = /[0-9]/.test(newPassword)
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      setError('Password must contain uppercase, lowercase, and a number')
       return
     }
 
@@ -271,11 +280,14 @@ function ChangePasswordSection({ email }: { email: string }) {
             <Input
               id="newPassword"
               type="password"
-              placeholder="At least 8 characters"
+              placeholder="At least 12 characters"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               disabled={loading}
             />
+            <p className="text-xs text-muted-foreground">
+              At least 12 characters with uppercase, lowercase, and a number
+            </p>
           </div>
 
           <div className="space-y-2">

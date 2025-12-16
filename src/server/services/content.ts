@@ -1,4 +1,5 @@
 import { prisma } from '@/db'
+import { timingSafeEqual } from 'crypto'
 import type { Content, ContentType } from '@/generated/prisma/client'
 
 // ==========================================
@@ -176,7 +177,25 @@ export function validateServiceKey(serviceKey: string | null): boolean {
     console.error('PUBLIC_SITE_SERVICE_KEY not configured')
     return false
   }
-  return serviceKey === PUBLIC_SITE_SERVICE_KEY
+
+  if (!serviceKey) {
+    return false
+  }
+
+  // Use constant-time comparison to prevent timing attacks
+  try {
+    const keyBuffer = Buffer.from(serviceKey, 'utf8')
+    const expectedBuffer = Buffer.from(PUBLIC_SITE_SERVICE_KEY, 'utf8')
+
+    // timingSafeEqual requires same length buffers
+    if (keyBuffer.length !== expectedBuffer.length) {
+      return false
+    }
+
+    return timingSafeEqual(keyBuffer, expectedBuffer)
+  } catch {
+    return false
+  }
 }
 
 // List all content (including unpublished) for admin

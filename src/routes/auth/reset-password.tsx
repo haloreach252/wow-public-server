@@ -39,8 +39,16 @@ function ResetPasswordPage() {
       setError('Both fields are required')
       return false
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (password.length < 12) {
+      setError('Password must be at least 12 characters')
+      return false
+    }
+    // Check for complexity requirements
+    const hasUppercase = /[A-Z]/.test(password)
+    const hasLowercase = /[a-z]/.test(password)
+    const hasNumber = /[0-9]/.test(password)
+    if (!hasUppercase || !hasLowercase || !hasNumber) {
+      setError('Password must contain uppercase, lowercase, and a number')
       return false
     }
     if (password !== confirmPassword) {
@@ -145,7 +153,7 @@ function ResetPasswordPage() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="At least 8 characters"
+                    placeholder="At least 12 characters"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"

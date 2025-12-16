@@ -4,14 +4,19 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
 
+// Fail fast if missing required environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables - auth will not work')
+  throw new Error(
+    'Missing required Supabase environment variables: ' +
+    (!supabaseUrl ? 'VITE_SUPABASE_URL ' : '') +
+    (!supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : '')
+  )
 }
 
 // Browser client (uses anon key, respects RLS)
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder',
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       autoRefreshToken: true,
